@@ -1,0 +1,99 @@
+/* ===== GLOBAL RESET ===== */
+* {
+  box-sizing: border-box;
+}
+
+img, canvas {
+  max-width: 100%;
+}
+
+/* ===== CONTAINERS ===== */
+.page {
+  padding: 30px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ===== GRID HELPERS ===== */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 20px;
+}
+
+/* ===== TABLE RESPONSIVE ===== */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ===== SIDEBAR RESPONSIVE ===== */
+.sidebar {
+  width: 250px;
+  min-height: 100vh;
+}
+
+@media (max-width: 1000px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== TABLET ===== */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 200px;
+  }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+
+  .page {
+    padding: 18px;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -250px;
+    top: 0;
+    transition: 0.3s;
+    z-index: 1000;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .topbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+}
+
+/* ===== SMALL PHONES ===== */
+@media (max-width: 480px) {
+  .page {
+    padding: 12px;
+  }
+
+  button {
+    width: 100%;
+  }
+}

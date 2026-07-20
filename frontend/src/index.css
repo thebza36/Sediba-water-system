@@ -1,0 +1,96 @@
+/* ===== GLOBAL BASE RESET ===== */
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+/* ===== APP LAYOUT ===== */
+
+.appLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* HEADER */
+.header {
+  height: 64px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  font-weight: 600;
+}
+
+/* BODY AREA */
+.mainArea {
+  display: flex;
+  flex: 1;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  background: #0f172a;
+  color: white;
+  padding: 24px 16px;
+}
+
+/* CONTENT */
+.content {
+  flex: 1;
+  padding: 32px;
+  background: #f1f5f9;
+}
+
+/* FOOTER */
+.footer {
+  height: 48px;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+body {
+  font-family: Inter, system-ui, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove anchor default styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Remove default margins from headings */
+h1, h2, h3, h4, h5, h6, p {
+  margin: 0;
+}
+
+/* Make media responsive */
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Tables responsive */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Buttons inherit font */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}

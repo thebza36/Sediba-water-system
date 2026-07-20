@@ -1,0 +1,36 @@
+/* ===== GLOBAL RESET ===== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+/* Prevent horizontal scrolling gaps */
+body {
+  overflow-x: hidden;
+}
+
+/* Headings reset */
+h1, h2, h3, h4, h5, h6, p {
+  margin: 0;
+}
+
+/* Tables responsive */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Buttons inherit font */
+button {
+  font-family: inherit;
+}
