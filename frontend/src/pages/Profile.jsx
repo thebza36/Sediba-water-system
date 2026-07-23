@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-
-const API = "http://localhost:5000/api/users";
+const API = `${import.meta.env.VITE_API_URL}/users`;
 
 const Profile = () => {
 
@@ -49,7 +48,7 @@ setName(data.name);
 setEmail(data.email || "");
 
 if(data.avatar){
-setPreview(`http://localhost:5000${data.avatar}`);
+setPreview(`${import.meta.env.VITE_API_URL.replace("/api", "")}${data.avatar}`);
 }
 
 }catch(err){

@@ -27,7 +27,7 @@ export default function RecordSale() {
   const loadProducts = async () => {
     try {
 
-      const res = await fetch("http://localhost:5000/api/products", { headers });
+      const res = await fetch(`${API}/products`, { headers });
       const text = await res.text();
 
       let data;
@@ -110,7 +110,7 @@ export default function RecordSale() {
   /* ================= SUBMIT SALE ================= */
 
   const handleSubmit = async () => {
- console.log("🚀 CALLING:", "http://localhost:5000/api/water-sales/pos");
+  console.log("🚀 CALLING:", `${API}/water-sales/pos`);
     try {
 
       if (items.length === 0) {
@@ -121,10 +121,10 @@ export default function RecordSale() {
       setLoading(true);
       setMessage("");
 
-      const res = await fetch("http://localhost:5000/api/water-sales/pos", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
+      const res = await fetch(`${API}/water-sales/pos`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
           items: items.map(i => ({
             product: i.product,
             quantity: Number(i.quantity),

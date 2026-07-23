@@ -92,7 +92,7 @@ useEffect(() => {
   const loadDeliveries = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:5000/api/deliveries/my",
+        `${import.meta.env.VITE_API_URL}/deliveries/my`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -127,7 +127,7 @@ return;
     try {
       setLoading(true);
       await axios.post(
-        "http://localhost:5000/api/deliveries",
+        `${import.meta.env.VITE_API_URL}/deliveries`,
         {
           customerName: form.customerName,
           phone: form.phone,
@@ -188,7 +188,7 @@ return;
   try {
 
     await axios.put(
-      `http://localhost:5000/api/deliveries/${id}/status`,
+      `${import.meta.env.VITE_API_URL}/deliveries/${id}/status`,
       { status },
       {
         headers: {
@@ -323,7 +323,7 @@ const updateDelivery = async () => {
 
     await axios.put(
 
-      `http://localhost:5000/api/deliveries/${editingDelivery._id}`,
+      `${import.meta.env.VITE_API_URL}/deliveries/${editingDelivery._id}`,
 
       {
 
@@ -383,7 +383,7 @@ const deleteDelivery = async (id) => {
 
     await axios.delete(
 
-      `http://localhost:5000/api/deliveries/${id}`,
+      `${import.meta.env.VITE_API_URL}/deliveries/${id}`,
 
       {
 

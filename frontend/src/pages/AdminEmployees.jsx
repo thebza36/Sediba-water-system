@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 export default function AdminEmployees(){
 
-const API="http://localhost:5000/api/users";
+const API = `${import.meta.env.VITE_API_URL}/users`;
 
 const [employees,setEmployees]=useState([]);
 const [filtered,setFiltered]=useState([]);

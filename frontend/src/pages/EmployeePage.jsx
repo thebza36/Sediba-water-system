@@ -5,6 +5,7 @@ export default function EmployeePage() {
 
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
+  const API = import.meta.env.VITE_API_URL;
 
   const [sales, setSales] = useState([]);
   const [meters, setMeters] = useState([]);
@@ -25,10 +26,10 @@ export default function EmployeePage() {
       };
 
       const [salesRes, metersRes, statsRes, topRes] = await Promise.all([
-        fetch("http://localhost:5000/api/water-sales/my-sales", { headers }),
-        fetch("http://localhost:5000/api/meters", { headers }),
-        fetch("http://localhost:5000/api/water-sales/my-stats", { headers }),
-        fetch("http://localhost:5000/api/water-sales/top-employees", { headers })
+        fetch(`${API}/water-sales/my-sales`, { headers }),
+        fetch(`${API}/meters`, { headers }),
+        fetch(`${API}/water-sales/my-stats`, { headers }),
+        fetch(`${API}/water-sales/top-employees`, { headers })
       ]);
 
       const salesData = salesRes.ok ? await salesRes.json() : [];

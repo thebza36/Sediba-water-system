@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 
-const API = "http://localhost:5000/api/clients";
+const API = `${import.meta.env.VITE_API_URL}/clients`;
 
 export default function Clients() {
 

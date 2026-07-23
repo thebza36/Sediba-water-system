@@ -29,12 +29,15 @@ export default function ClientProfile() {
   const [client, setClient] = useState(null);
   const [sales, setSales] = useState([]);
   const [payment, setPayment] = useState("");
+  const API = import.meta.env.VITE_API_URL;
 
   const load = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/clients/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        const res = await fetch(`${API}/clients/${id}`, {
+        headers: {
+        Authorization: `Bearer ${token}`,
+  },
+});
 
       const data = await res.json();
 
@@ -53,7 +56,7 @@ export default function ClientProfile() {
   const pay = async () => {
     if (!payment) return;
 
-    await fetch(`http://localhost:5000/api/clients/${id}/payment`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/clients/${id}/payment`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -79,8 +82,8 @@ export default function ClientProfile() {
   };
 
   const invoice = () => {
-    window.open(`http://localhost:5000/api/reports/client/${id}`);
-  };
+  window.open(`${import.meta.env.VITE_API_URL}/reports/client/${id}`);
+};
 
   if (!client) return <p>Loading...</p>;
 

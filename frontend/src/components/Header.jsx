@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ThemeContext } from "../context/ThemeContext";
 import socket from "../socket"; // 🔥 ADDED
 
-const API = "http://localhost:5000/api/users";
-const NOTIFY_API = "http://localhost:5000/api/notifications";
+const API = `${import.meta.env.VITE_API_URL}/users`;
+const NOTIFY_API = `${import.meta.env.VITE_API_URL}/notifications`;
 
 
 const Header = () => {
@@ -138,7 +138,7 @@ useEffect(() => {
           <div style={avatar} onClick={() => setOpen(!open)}>
             {user?.avatar ? (
               <img
-                src={`http://localhost:5000${user.avatar}`}
+                src={`${import.meta.env.VITE_API_URL.replace("/api", "")}${user.avatar}`}
                 alt="avatar"
                 style={{ width: "100%", height: "100%", borderRadius: "50%" }}
               />
