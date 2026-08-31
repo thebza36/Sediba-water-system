@@ -1,479 +1,886 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { ThemeContext } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import {
+  Package,
+  Plus
+} from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL;
 
 export default function AdminProducts() {
 
-const navigate = useNavigate();
-const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+  const { theme } = useContext(ThemeContext);
+  const token = localStorage.getItem("token");
 
-const [products,setProducts] = useState([]);
-const [loading,setLoading] = useState(true);
-const [search,setSearch] = useState("");
+  const [products,setProducts] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [search,setSearch] = useState("");
 
-const [newProduct,setNewProduct] = useState({
-name:"",
-size:"",
-category:"water",
-price:"",
-stock:""
-});
+  const [newProduct,setNewProduct] = useState({
+    name:"",
+    size:"",
+    category:"water",
+    price:"",
+    stock:""
+  });
 
-/* ✅ MODALS */
-const [priceModal,setPriceModal] = useState(null);
-const [stockModal,setStockModal] = useState(null);
-const [deleteModal,setDeleteModal] = useState(null);
+  /* MODALS */
 
-/* ✅ VALIDATION ERROR */
-const [error,setError] = useState("");
+  const [priceModal,setPriceModal] = useState(null);
+  const [stockModal,setStockModal] = useState(null);
+  const [deleteModal,setDeleteModal] = useState(null);
 
-const authFetch = async(url)=>{
+  /* VALIDATION ERROR */
 
-const res = await fetch(url,{
-headers:{Authorization:`Bearer ${token}`}
-});
+  const [error,setError] = useState("");
 
-if(res.status === 401){
-localStorage.clear();
-navigate("/");
-throw new Error("Session expired");
-}
+  const authFetch = async(url)=>{
 
-return res.json();
+    const res = await fetch(url,{
+      headers:{Authorization:`Bearer ${token}`}
+    });
 
-};
+    if(res.status === 401){
+      localStorage.clear();
+      navigate("/");
+      throw new Error("Session expired");
+    }
 
-const loadProducts = async()=>{
+    return res.json();
 
-try{
+  };
 
-setLoading(true);
 
-const data = await authFetch(`${API}/products`);
+  const loadProducts = async()=>{
 
-setProducts(data);
+    try{
 
-}catch{
+      setLoading(true);
 
-alert("Failed to load products");
+      const data = await authFetch(`${API}/products`);
 
-}finally{
+      setProducts(data);
 
-setLoading(false);
+    }catch{
 
-}
+      alert("Failed to load products");
 
-};
+    }finally{
 
-useEffect(()=>{
+      setLoading(false);
 
-if(!token) return navigate("/");
+    }
 
-loadProducts();
+  };
 
-},[]);
 
+  useEffect(()=>{
 
-/* CREATE PRODUCT */
+    if(!token) return navigate("/");
 
-const createProduct = async()=>{
+    loadProducts();
 
-/* ✅ VALIDATION */
-if(
-!newProduct.name ||
-!newProduct.size ||
-!newProduct.category ||
-!newProduct.price ||
-!newProduct.stock
-){
-setError("Please fill in all fields");
-return;
-}
+  },[]);
 
-setError("");
 
-try{
+  /* CREATE PRODUCT */
 
-await fetch(`${API}/products`,{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-Authorization:`Bearer ${token}`
-},
-body:JSON.stringify(newProduct)
-});
+  const createProduct = async()=>{
 
-setNewProduct({
-name:"",
-size:"",
-category:"water",
-price:"",
-stock:""
-});
+    /* VALIDATION */
 
-loadProducts();
+    if(
+      !newProduct.name ||
+      !newProduct.size ||
+      !newProduct.category ||
+      !newProduct.price ||
+      !newProduct.stock
+    ){
 
-}catch{
+      setError("Please fill in all fields");
+      return;
 
-alert("Failed to create product");
+    }
 
-}
+    setError("");
 
-};
+    try{
 
+      await fetch(`${API}/products`,{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:`Bearer ${token}`
+        },
+        body:JSON.stringify(newProduct)
+      });
 
-/* DELETE PRODUCT */
+      setNewProduct({
+        name:"",
+        size:"",
+        category:"water",
+        price:"",
+        stock:""
+      });
 
-const confirmDelete = async()=>{
+      loadProducts();
 
-await fetch(`${API}/products/${deleteModal._id}`,{
-method:"DELETE",
-headers:{Authorization:`Bearer ${token}`}
-});
+    }catch{
 
-setDeleteModal(null);
-loadProducts();
+      alert("Failed to create product");
 
-};
+    }
 
+  };
 
-/* UPDATE PRICE */
 
-const updatePrice = async()=>{
+  /* DELETE PRODUCT */
 
-await fetch(`${API}/products/${priceModal._id}`,{
-method:"PUT",
-headers:{
-"Content-Type":"application/json",
-Authorization:`Bearer ${token}`
-},
-body:JSON.stringify({price:priceModal.price})
-});
+  const confirmDelete = async()=>{
 
-setPriceModal(null);
-loadProducts();
+    await fetch(`${API}/products/${deleteModal._id}`,{
+      method:"DELETE",
+      headers:{Authorization:`Bearer ${token}`}
+    });
 
-};
+    setDeleteModal(null);
+    loadProducts();
 
+  };
 
-/* ADD STOCK */
 
-const addStock = async()=>{
+  /* UPDATE PRICE */
 
-await fetch(`${API}/products/${stockModal._id}/stock`,{
-method:"PUT",
-headers:{
-"Content-Type":"application/json",
-Authorization:`Bearer ${token}`
-},
-body:JSON.stringify({quantity:stockModal.quantity})
-});
+  const updatePrice = async()=>{
 
-setStockModal(null);
-loadProducts();
+    await fetch(`${API}/products/${priceModal._id}`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:`Bearer ${token}`
+      },
+      body:JSON.stringify({price:priceModal.price})
+    });
 
-};
+    setPriceModal(null);
+    loadProducts();
 
+  };
 
-const filteredProducts = products.filter(p =>
-p.name.toLowerCase().includes(search.toLowerCase())
-);
 
-const currency = (n)=>
-new Intl.NumberFormat("en-ZA",{
-style:"currency",
-currency:"ZAR"
-}).format(n||0);
+  /* ADD STOCK */
 
+  const addStock = async()=>{
 
-if(loading) return <div style={center}>Loading products...</div>;
+    await fetch(`${API}/products/${stockModal._id}/stock`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:`Bearer ${token}`
+      },
+      body:JSON.stringify({quantity:stockModal.quantity})
+    });
 
-return(
+    setStockModal(null);
+    loadProducts();
 
-<div style={page}>
+  };
 
-<h1 style={title}>📦 Product Management</h1>
 
-<input
-style={searchInput}
-placeholder="🔎 Search products..."
-value={search}
-onChange={(e)=>setSearch(e.target.value)}
-/>
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
 
 
-{/* ADD PRODUCT */}
+  const currency = (n)=>
+    new Intl.NumberFormat("en-ZA",{
+      style:"currency",
+      currency:"ZAR"
+    }).format(n||0);
 
-<div style={card}>
 
-<h3 style={sectionTitle}>➕ Add Product</h3>
+  if(loading) return <div style={center}>Loading products...</div>;
 
-<div style={formGrid}>
 
-<input
-style={input}
-placeholder="Name"
-value={newProduct.name}
-onChange={(e)=>setNewProduct({...newProduct,name:e.target.value})}
-/>
+  return(
 
-<input
-style={input}
-placeholder="Size"
-value={newProduct.size}
-onChange={(e)=>setNewProduct({...newProduct,size:e.target.value})}
-/>
+    <div style={page(theme)}>
 
-<select
-style={input}
-value={newProduct.category}
-onChange={(e)=>setNewProduct({...newProduct,category:e.target.value})}
->
-<option value="water">Water</option>
-<option value="ice">Ice</option>
-<option value="refill">Refill</option>
-<option value="other">Other</option>
-</select>
+      <h1 style={title(theme)}>
+        <Package
+          size={30}
+          strokeWidth={2.2}
+          style={{
+            verticalAlign:"middle",
+            marginRight:8
+          }}
+        />
+        Product Management
+      </h1>
 
-<input
-style={input}
-type="number"
-step="0.01"
-placeholder="Price"
-value={newProduct.price}
-onChange={(e)=>setNewProduct({...newProduct,price:e.target.value})}
-/>
 
-<input
-style={input}
-type="number"
-placeholder="Stock"
-value={newProduct.stock}
-onChange={(e)=>setNewProduct({...newProduct,stock:e.target.value})}
-/>
+      <input
+        style={searchInput(theme)}
+        placeholder="Search products..."
+        value={search}
+        onChange={(e)=>setSearch(e.target.value)}
+      />
 
-<button onClick={createProduct} style={addBtn}>
-Add Product
-</button>
 
-</div>
+      {/* ADD PRODUCT */}
 
-{/* ✅ ERROR MESSAGE */}
-{error && <div style={{color:"#dc2626",marginTop:10}}>{error}</div>}
+      <div style={card(theme)}>
 
-</div>
+        <h3
+          style={{
+            ...sectionTitle(theme),
+            display:"flex",
+            alignItems:"center",
+            gap:8
+          }}
+        >
+          <Plus size={21} strokeWidth={2.2} />
+          Add Product
+        </h3>
 
 
-{/* PRODUCT TABLE */}
+        <div style={formGrid}>
 
-<div style={card}>
+          <input
+            style={input(theme)}
+            placeholder="Name"
+            value={newProduct.name}
+            onChange={(e)=>setNewProduct({
+              ...newProduct,
+              name:e.target.value
+            })}
+          />
 
-<div style={{overflowX:"auto"}}>
 
-<table style={table}>
+          <input
+            style={input(theme)}
+            placeholder="Size"
+            value={newProduct.size}
+            onChange={(e)=>setNewProduct({
+              ...newProduct,
+              size:e.target.value
+            })}
+          />
 
-<thead>
-<tr style={thead}>
-<th style={th}>Product</th>
-<th style={th}>Category</th>
-<th style={th}>Price</th>
-<th style={th}>Stock</th>
-<th style={th}>Actions</th>
-</tr>
-</thead>
 
-<tbody>
+          <select
+            style={input(theme)}
+            value={newProduct.category}
+            onChange={(e)=>setNewProduct({
+              ...newProduct,
+              category:e.target.value
+            })}
+          >
 
-{filteredProducts.map((p,i)=>(
+            <option value="water">Water</option>
+            <option value="ice">Ice</option>
+            <option value="refill">Refill</option>
+            <option value="other">Other</option>
 
-<tr key={p._id} style={i%2?rowAlt:row}>
+          </select>
 
-<td style={td}>
-<strong>{p.name}</strong>
-<br/>
-<span style={sizeText}>{p.size}</span>
-</td>
 
-<td style={td}>{p.category}</td>
+          <input
+            style={input(theme)}
+            type="number"
+            step="0.01"
+            placeholder="Price"
+            value={newProduct.price}
+            onChange={(e)=>setNewProduct({
+              ...newProduct,
+              price:e.target.value
+            })}
+          />
 
-<td style={td}>{currency(p.price)}</td>
 
-<td style={td}>
+          <input
+            style={input(theme)}
+            type="number"
+            placeholder="Stock"
+            value={newProduct.stock}
+            onChange={(e)=>setNewProduct({
+              ...newProduct,
+              stock:e.target.value
+            })}
+          />
 
-<div style={stockBar}>
 
-<div
-style={{
-...stockFill,
-width:`${Math.min(p.stock*10,100)}%`,
-background:p.stock < 5 ? "#dc2626" : "#16a34a"
-}}
-/>
+          <button
+            onClick={createProduct}
+            style={addBtn}
+          >
+            Add Product
+          </button>
 
-</div>
+        </div>
 
-<span style={{
-color:p.stock < 5 ? "#dc2626" : "#16a34a",
-fontWeight:600
-}}>
-{p.stock}
-</span>
 
-</td>
+        {/* ERROR MESSAGE */}
 
-<td style={tdActions}>
+        {error && (
+          <div
+            style={{
+              color:"#dc2626",
+              marginTop:10
+            }}
+          >
+            {error}
+          </div>
+        )}
 
-<button style={editBtn} onClick={()=>setPriceModal(p)}>
-Edit
-</button>
+      </div>
 
-<button style={stockBtn} onClick={()=>setStockModal(p)}>
-Stock
-</button>
 
-<button style={deleteBtn} onClick={()=>setDeleteModal(p)}>
-Delete
-</button>
+      {/* PRODUCT TABLE */}
 
-</td>
+      <div style={card(theme)}>
 
-</tr>
+        <div style={{overflowX:"auto"}}>
 
-))}
+          <table style={table}>
 
-</tbody>
+            <thead>
 
-</table>
+              <tr style={thead(theme)}>
 
-</div>
+                <th style={th(theme)}>
+                  Product
+                </th>
 
-</div>
+                <th style={th(theme)}>
+                  Category
+                </th>
 
+                <th style={th(theme)}>
+                  Price
+                </th>
 
-{/* PRICE MODAL */}
+                <th style={th(theme)}>
+                  Stock
+                </th>
 
-{priceModal && (
-<div style={modal}>
-<div style={modalBox}>
-<h2>Edit Price</h2>
+                <th style={th(theme)}>
+                  Actions
+                </th>
 
-<input
-style={{...input,width:"100%",margin:"15px 0"}}
-value={priceModal.price}
-onChange={(e)=>setPriceModal({...priceModal,price:e.target.value})}
-/>
+              </tr>
 
-<div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-<button style={cancelBtn} onClick={()=>setPriceModal(null)}>Cancel</button>
-<button style={saveBtn} onClick={updatePrice}>Save</button>
-</div>
+            </thead>
 
-</div>
-</div>
-)}
 
+            <tbody>
 
-{/* STOCK MODAL */}
+              {filteredProducts.map((p,i)=>(
 
-{stockModal && (
-<div style={modal}>
-<div style={modalBox}>
-<h2>Add Stock</h2>
+                <tr
+                  key={p._id}
+                  style={i%2 ? rowAlt : row}
+                >
 
-<input
-style={{...input,width:"100%",margin:"15px 0"}}
-value={stockModal.quantity || ""}
-onChange={(e)=>setStockModal({...stockModal,quantity:e.target.value})}
-/>
+                  <td style={td(theme)}>
 
-<div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-<button style={cancelBtn} onClick={()=>setStockModal(null)}>Cancel</button>
-<button style={saveBtn} onClick={addStock}>Add</button>
-</div>
+                    <strong>
+                      {p.name}
+                    </strong>
 
-</div>
-</div>
-)}
+                    <br/>
 
+                    <span style={sizeText}>
+                      {p.size}
+                    </span>
 
-{/* ✅ DELETE MODAL */}
+                  </td>
 
-{deleteModal && (
-<div style={modal}>
-<div style={modalBox}>
 
-<h2 style={{marginBottom:10}}>Confirm Delete</h2>
-<p style={{marginBottom:20}}>
-Are you sure you want to delete <strong>{deleteModal.name}</strong>?
-</p>
+                  <td style={td(theme)}>
+                    {p.category}
+                  </td>
 
-<div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
 
-<button style={cancelBtn} onClick={()=>setDeleteModal(null)}>
-Cancel
-</button>
+                  <td style={td(theme)}>
+                    {currency(p.price)}
+                  </td>
 
-<button style={deleteBtn} onClick={confirmDelete}>
-Delete
-</button>
 
-</div>
+                  <td style={td(theme)}>
 
-</div>
-</div>
-)}
+                    <div style={stockBar}>
 
-</div>
+                      <div
+                        style={{
+                          ...stockFill,
+                          width:`${Math.min(p.stock*10,100)}%`,
+                          background:p.stock < 5
+                            ? "#dc2626"
+                            : "#16a34a"
+                        }}
+                      />
 
-);
+                    </div>
+
+
+                    <span
+                      style={{
+                        color:p.stock < 5
+                          ? "#dc2626"
+                          : "#16a34a",
+                        fontWeight:600
+                      }}
+                    >
+                      {p.stock}
+                    </span>
+
+                  </td>
+
+
+                  <td style={tdActions(theme)}>
+
+                    <button
+                      style={editBtn}
+                      onClick={()=>setPriceModal(p)}
+                    >
+                      Edit
+                    </button>
+
+
+                    <button
+                      style={stockBtn}
+                      onClick={()=>setStockModal(p)}
+                    >
+                      Stock
+                    </button>
+
+
+                    <button
+                      style={deleteBtn}
+                      onClick={()=>setDeleteModal(p)}
+                    >
+                      Delete
+                    </button>
+
+                  </td>
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+      {/* PRICE MODAL */}
+
+      {priceModal && (
+
+        <div style={modal}>
+
+          <div style={modalBox(theme)}>
+
+            <h2>
+              Edit Price
+            </h2>
+
+
+            <input
+              style={{
+                ...input(theme),
+                width:"100%",
+                margin:"15px 0"
+              }}
+              value={priceModal.price}
+              onChange={(e)=>setPriceModal({
+                ...priceModal,
+                price:e.target.value
+              })}
+            />
+
+
+            <div
+              style={{
+                display:"flex",
+                gap:10,
+                justifyContent:"flex-end"
+              }}
+            >
+
+              <button
+                style={cancelBtn}
+                onClick={()=>setPriceModal(null)}
+              >
+                Cancel
+              </button>
+
+
+              <button
+                style={saveBtn}
+                onClick={updatePrice}
+              >
+                Save
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* STOCK MODAL */}
+
+      {stockModal && (
+
+        <div style={modal}>
+
+          <div style={modalBox(theme)}>
+
+            <h2>
+              Add Stock
+            </h2>
+
+
+            <input
+              style={{
+                ...input(theme),
+                width:"100%",
+                margin:"15px 0"
+              }}
+              value={stockModal.quantity || ""}
+              onChange={(e)=>setStockModal({
+                ...stockModal,
+                quantity:e.target.value
+              })}
+            />
+
+
+            <div
+              style={{
+                display:"flex",
+                gap:10,
+                justifyContent:"flex-end"
+              }}
+            >
+
+              <button
+                style={cancelBtn}
+                onClick={()=>setStockModal(null)}
+              >
+                Cancel
+              </button>
+
+
+              <button
+                style={saveBtn}
+                onClick={addStock}
+              >
+                Add
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* DELETE MODAL */}
+
+      {deleteModal && (
+
+        <div style={modal}>
+
+          <div style={modalBox(theme)}>
+
+            <h2 style={{marginBottom:10}}>
+              Confirm Delete
+            </h2>
+
+
+            <p style={{marginBottom:20}}>
+              Are you sure you want to delete{" "}
+              <strong>
+                {deleteModal.name}
+              </strong>?
+            </p>
+
+
+            <div
+              style={{
+                display:"flex",
+                gap:10,
+                justifyContent:"flex-end"
+              }}
+            >
+
+              <button
+                style={cancelBtn}
+                onClick={()=>setDeleteModal(null)}
+              >
+                Cancel
+              </button>
+
+
+              <button
+                style={deleteBtn}
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
+
+  );
 
 }
 
 
 /* STYLES */
 
-const page={width:"100%"};
-const title={fontSize:28,fontWeight:700,marginBottom:20,color:"#6b21a8"};
-const sectionTitle={marginBottom:15,color:"#6b21a8"};
-const searchInput={padding:12,borderRadius:8,border:"1px solid #ddd6fe",marginBottom:20,width:"100%",maxWidth:320};
-const card={background:"white",padding:25,borderRadius:14,boxShadow:"0 10px 30px rgba(0,0,0,0.08)",marginBottom:30};
-const formGrid={display:"grid",gap:12,gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))"};
-const input={padding:10,borderRadius:8,border:"1px solid #ddd6fe"};
-const addBtn={background:"#7c3aed",color:"white",border:"none",padding:"10px 14px",borderRadius:8,cursor:"pointer"};
-const editBtn={background:"#8b5cf6",color:"white",border:"none",padding:"6px 10px",borderRadius:6};
-const stockBtn={background:"#a78bfa",color:"white",border:"none",padding:"6px 10px",borderRadius:6};
-const deleteBtn={background:"#dc2626",color:"white",border:"none",padding:"6px 10px",borderRadius:6};
-const cancelBtn={padding:"10px 16px",background:"#e5e7eb",border:"none",borderRadius:8};
-const saveBtn={padding:"10px 16px",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontWeight:"600"};
-const table={width:"100%",borderCollapse:"collapse",minWidth:650};
-const thead={background:"#f3e8ff"};
-const th={padding:12,textAlign:"left",color:"#6b21a8"};
-const td={padding:12,borderTop:"1px solid #eee"};
-const tdActions={padding:12,borderTop:"1px solid #eee",display:"flex",gap:8,flexWrap:"wrap"};
-const row={background:"white"};
-const rowAlt={background:"#faf5ff"};
-const sizeText={opacity:.6,fontSize:13};
-const stockBar={width:100,height:8,background:"#ede9fe",borderRadius:4,marginBottom:4};
-const stockFill={height:"100%",borderRadius:4};
-const center={display:"flex",justifyContent:"center",alignItems:"center",height:"60vh",fontSize:18};
+const page = (theme) => ({
+  width: "100%",
+  maxWidth: 1400,
+  margin: "0 auto",
+  padding: "0 10px 30px",
+  boxSizing: "border-box",
+  color: theme.text,
+});
 
-const modal={
-position:"fixed",
-top:0,
-left:0,
-width:"100%",
-height:"100%",
-background:"rgba(0,0,0,0.5)",
-display:"flex",
-justifyContent:"center",
-alignItems:"center"
+
+const title = (theme) => ({
+  fontSize: "clamp(22px,5vw,30px)",
+  fontWeight: 700,
+  marginBottom: 20,
+  color: theme.primary,
+});
+
+
+const sectionTitle = (theme) => ({
+  marginBottom: 15,
+  color: theme.primary,
+});
+
+
+const searchInput = (theme) => ({
+  padding: 12,
+  borderRadius: 8,
+  border: `1px solid ${theme.border}`,
+  background: theme.card,
+  color: theme.text,
+  marginBottom: 20,
+  width: "100%",
+  maxWidth: 320,
+});
+
+
+const card = (theme) => ({
+  background: theme.card,
+  color: theme.text,
+  padding: 20,
+  borderRadius: 14,
+  border: `1px solid ${theme.border}`,
+  boxShadow: "0 10px 30px rgba(0,0,0,.08)",
+  marginBottom: 30,
+});
+
+
+const formGrid = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
 };
 
-const modalBox={
-background:"white",
-padding:25,
-borderRadius:14,
-width:"350px",
-boxShadow:"0 10px 30px rgba(0,0,0,0.2)"
+
+const input = (theme) => ({
+  padding: 10,
+  borderRadius: 8,
+  border: `1px solid ${theme.border}`,
+  background: theme.page,
+  color: theme.text,
+});
+
+
+const addBtn = {
+  background: "#7c3aed",
+  color: "white",
+  border: "none",
+  padding: "10px 14px",
+  borderRadius: 8,
+  fontWeight: 600,
+  cursor: "pointer",
 };
+
+
+const editBtn = {
+  background: "#8b5cf6",
+  color: "white",
+  border: "none",
+  padding: "10px 14px",
+  borderRadius: 6,
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+
+const stockBtn = {
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  padding: "10px 14px",
+  borderRadius: 6,
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+
+const deleteBtn = {
+  background: "#dc2626",
+  color: "white",
+  border: "none",
+  padding: "10px 14px",
+  borderRadius: 6,
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+
+const cancelBtn = {
+  padding: "10px 16px",
+  background: "#94a3b8",
+  color: "white",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+};
+
+
+const saveBtn = {
+  padding: "10px 16px",
+  background: "#7c3aed",
+  color: "white",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+};
+
+
+const table = {
+  width: "100%",
+  borderCollapse: "collapse",
+  minWidth: 600,
+};
+
+
+const thead = (theme) => ({
+  background: theme.tableHeader,
+});
+
+
+const th = (theme) => ({
+  padding: 12,
+  textAlign: "left",
+  color: theme.text,
+});
+
+
+const td = (theme) => ({
+  padding: 12,
+  borderTop: `1px solid ${theme.border}`,
+  color: theme.text,
+});
+
+
+const tdActions = (theme) => ({
+  padding: 12,
+  borderTop: `1px solid ${theme.border}`,
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  color: theme.text,
+});
+
+
+const row = {
+  background: "transparent",
+};
+
+
+const rowAlt = {
+  background: "rgba(148,163,184,.08)",
+};
+
+
+const sizeText = {
+  opacity: .7,
+  fontSize: 13,
+};
+
+
+const stockBar = {
+  width: "100%",
+  maxWidth: 100,
+  height: 8,
+  background: "#cbd5e1",
+  borderRadius: 4,
+  marginBottom: 4,
+};
+
+
+const stockFill = {
+  height: "100%",
+  borderRadius: 4,
+};
+
+
+const center = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  height: "60vh",
+  fontSize: 18,
+};
+
+
+const modal = {
+  position: "fixed",
+  inset: 0,
+  padding: 15,
+  background: "rgba(0,0,0,.55)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+};
+
+
+const modalBox = (theme) => ({
+  background: theme.card,
+  color: theme.text,
+  padding: 25,
+  borderRadius: 14,
+  width: "90%",
+  maxWidth: 360,
+  border: `1px solid ${theme.border}`,
+  boxShadow: "0 10px 30px rgba(0,0,0,.25)",
+});

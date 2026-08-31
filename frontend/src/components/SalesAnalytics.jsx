@@ -12,14 +12,13 @@ import { Bar } from "react-chartjs-2";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const SalesAnalytics = ({ sales = [] }) => {
-
   const [filter, setFilter] = useState("all");
 
-
-  /* ===== DATE FILTER ===== */
+  /* ==========================
+     FILTER SALES
+  ========================== */
 
   const filteredSales = sales.filter((sale) => {
-
     if (filter === "all") return true;
 
     const saleDate = new Date(sale.date);
@@ -43,11 +42,11 @@ const SalesAnalytics = ({ sales = [] }) => {
     }
 
     return true;
-
   });
 
-
-  /* ===== SUMMARY ===== */
+  /* ==========================
+     SUMMARY
+  ========================== */
 
   const totalRevenue = filteredSales.reduce(
     (sum, sale) => sum + (sale.revenue || 0),
@@ -61,30 +60,46 @@ const SalesAnalytics = ({ sales = [] }) => {
 
   const totalTransactions = filteredSales.length;
 
-
-  /* ===== GROUP BY DATE ===== */
+  /* ==========================
+     GROUP BY DATE
+  ========================== */
 
   const grouped = {};
 
   filteredSales.forEach((sale) => {
-
     const date = new Date(sale.date).toLocaleDateString();
 
     if (!grouped[date]) {
-      grouped[date] = { litres: 0, revenue: 0 };
+      grouped[date] = {
+        litres: 0,
+        revenue: 0,
+      };
     }
 
     grouped[date].litres += sale.totalSold || 0;
     grouped[date].revenue += sale.revenue || 0;
-
   });
-
 
   const labels = Object.keys(grouped);
 
   const litresData = labels.map((d) => grouped[d].litres);
   const revenueData = labels.map((d) => grouped[d].revenue);
 
+  /* ==========================
+     SALES PER METER
+  ========================== */
+
+  const meterMap = {};
+
+  filteredSales.forEach((sale) => {
+    const meter = sale.meter?.meterNumber || "Unknown";
+
+    if (!meterMap[meter]) {
+      meterMap[meter] = 0;
+    }
+
+    meterMap[meter] += sale.totalSold || 0;
+  });
 
   const litresChart = {
     labels,
@@ -97,35 +112,16 @@ const SalesAnalytics = ({ sales = [] }) => {
     ],
   };
 
-
   const revenueChart = {
     labels,
     datasets: [
       {
-        label: "Revenue (ZAR)",
+        label: "Revenue (R)",
         data: revenueData,
         backgroundColor: "#1e3a8a",
       },
     ],
   };
-
-
-  /* ===== SALES PER METER ===== */
-
-  const meterMap = {};
-
-  filteredSales.forEach((sale) => {
-
-    const meter = sale.meter?.meterNumber || "Unknown";
-
-    if (!meterMap[meter]) {
-      meterMap[meter] = 0;
-    }
-
-    meterMap[meter] += sale.totalSold || 0;
-
-  });
-
 
   const meterChart = {
     labels: Object.keys(meterMap),
@@ -138,103 +134,181 @@ const SalesAnalytics = ({ sales = [] }) => {
     ],
   };
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+      },
+    },
+  };
 
   return (
-    <div style={{ padding: 20 }}>
-
-      <h2 style={{ marginBottom: 20 }}>📊 Sales Analytics</h2>
-
+    <div style={container}>
+      <h2 style={title}>📊 Sales Analytics</h2>
 
       {/* FILTER */}
 
       <div style={filterContainer}>
+        <button
+          onClick={() => setFilter("today")}
+          style={btn}
+        >
+          Today
+        </button>
 
-        <button onClick={() => setFilter("today")} style={btn}>Today</button>
-        <button onClick={() => setFilter("week")} style={btn}>Week</button>
-        <button onClick={() => setFilter("month")} style={btn}>Month</button>
-        <button onClick={() => setFilter("all")} style={btn}>All</button>
+        <button
+          onClick={() => setFilter("week")}
+          style={btn}
+        >
+          Week
+        </button>
 
+        <button
+          onClick={() => setFilter("month")}
+          style={btn}
+        >
+          Month
+        </button>
+
+        <button
+          onClick={() => setFilter("all")}
+          style={btn}
+        >
+          All
+        </button>
       </div>
-
 
       {/* SUMMARY */}
 
       <div style={stats}>
-
         <div style={card}>
           <h4>Total Litres</h4>
-          <p>{totalLitres}</p>
+          <p style={value}>{totalLitres.toFixed(2)} L</p>
         </div>
 
         <div style={card}>
           <h4>Total Revenue</h4>
-          <p>R {totalRevenue}</p>
+          <p style={value}>
+            R{" "}
+            {totalRevenue.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </p>
         </div>
 
         <div style={card}>
           <h4>Total Sales</h4>
-          <p>{totalTransactions}</p>
+          <p style={value}>{totalTransactions}</p>
         </div>
-
       </div>
 
+      {/* WATER CHART */}
 
-      {/* CHARTS */}
+      <div style={chartCard}>
+        <h3>💧 Water Sold Trend</h3>
 
-      <div style={{ marginTop: 40 }}>
-        <h3>Water Sold Trend</h3>
-        <Bar data={litresChart} />
+        <div style={chartWrapper}>
+          <Bar
+            data={litresChart}
+            options={chartOptions}
+          />
+        </div>
       </div>
 
+      {/* REVENUE */}
 
-      <div style={{ marginTop: 50 }}>
-        <h3>Revenue Trend</h3>
-        <Bar data={revenueChart} />
+      <div style={chartCard}>
+        <h3>💰 Revenue Trend</h3>
+
+        <div style={chartWrapper}>
+          <Bar
+            data={revenueChart}
+            options={chartOptions}
+          />
+        </div>
       </div>
 
+      {/* METERS */}
 
-      <div style={{ marginTop: 50 }}>
-        <h3>Sales Per Meter</h3>
-        <Bar data={meterChart} />
+      <div style={chartCard}>
+        <h3>🚰 Sales Per Meter</h3>
+
+        <div style={chartWrapper}>
+          <Bar
+            data={meterChart}
+            options={chartOptions}
+          />
+        </div>
       </div>
-
     </div>
   );
 };
 
+/* =====================================
+   STYLES
+===================================== */
 
-/* ===== STYLES ===== */
+const container = {
+  padding: "20px",
+};
+
+const title = {
+  marginBottom: 20,
+};
 
 const filterContainer = {
   display: "flex",
   gap: 10,
-  marginBottom: 20
+  flexWrap: "wrap",
+  marginBottom: 25,
 };
 
 const btn = {
-  padding: "8px 14px",
+  padding: "10px 18px",
   background: "#2563eb",
-  border: "none",
   color: "white",
-  borderRadius: 6,
-  cursor: "pointer"
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontWeight: 600,
 };
 
 const stats = {
   display: "flex",
+  flexWrap: "wrap",
   gap: 20,
-  marginTop: 20,
-  flexWrap: "wrap"
 };
 
 const card = {
-  flex: 1,
-  minWidth: 150,
-  padding: 15,
+  flex: "1 1 220px",
   background: "white",
-  borderRadius: 10,
-  boxShadow: "0 3px 8px rgba(0,0,0,0.1)",
-  textAlign: "center"
+  padding: 20,
+  borderRadius: 12,
+  boxShadow: "0 4px 10px rgba(0,0,0,.08)",
+  textAlign: "center",
+};
+
+const value = {
+  fontSize: 26,
+  fontWeight: "bold",
+  color: "#2563eb",
+};
+
+const chartCard = {
+  marginTop: 35,
+  background: "white",
+  padding: 20,
+  borderRadius: 12,
+  boxShadow: "0 4px 10px rgba(0,0,0,.08)",
+};
+
+const chartWrapper = {
+  position: "relative",
+  width: "100%",
+  minHeight: 320,
+  overflowX: "auto",
 };
 
 export default SalesAnalytics;

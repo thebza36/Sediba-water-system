@@ -1,9 +1,25 @@
+import React, {
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 
-import React, { useEffect, useState, useRef } from "react";
+import { ThemeContext } from "../context/ThemeContext";
+import {
+  Users,
+  Search,
+  Trash2,
+  Save,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 
 const API = `${import.meta.env.VITE_API_URL}/clients`;
 
 export default function Clients() {
+  const { theme } = useContext(ThemeContext);
 
   const token = localStorage.getItem("token");
 
@@ -22,34 +38,32 @@ export default function Clients() {
     name: "",
     location: "",
     phone: "",
-    type: "individual"
+    type: "individual",
   });
 
-  const nameRef = useRef(null); // ✅ autofocus
+  const nameRef = useRef(null);
 
-  /* MODALS */
-  const [showDeleteModal,setShowDeleteModal]=useState(false);
-  const [deleteId,setDeleteId]=useState(null);
-  const [showSaveConfirm,setShowSaveConfirm]=useState(false);
-  const [showSuccess,setShowSuccess]=useState(false); // 🎉
-  const [error,setError]=useState("");
+  // MODALS
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState("");
 
-  /* AUTO FOCUS */
-  useEffect(()=>{
-    if(showModal && nameRef.current){
+  useEffect(() => {
+    if (showModal && nameRef.current) {
       nameRef.current.focus();
     }
-  },[showModal]);
-
-  /* LOAD CLIENTS */
+  }, [showModal]);
 
   const loadClients = async () => {
     try {
-
       setLoading(true);
 
-      const res = await fetch(API,{
-        headers:{ Authorization:`Bearer ${token}` }
+      const res = await fetch(API, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const data = await res.json();
@@ -58,46 +72,46 @@ export default function Clients() {
 
       setClients(arr);
       setFiltered(arr);
-
     } catch {
-      setMsg("❌ Failed to load clients");
+      setMsg("Failed to load clients");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(()=>{ loadClients(); },[]);
+  useEffect(() => {
+    loadClients();
+  }, []);
 
-  /* SEARCH */
-
-  useEffect(()=>{
+  useEffect(() => {
     const q = search.toLowerCase();
+
     setFiltered(
-      clients.filter(c =>
-        c.name?.toLowerCase().includes(q) ||
-        c.location?.toLowerCase().includes(q) ||
-        c.phone?.includes(q)
+      clients.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(q) ||
+          c.location?.toLowerCase().includes(q) ||
+          c.phone?.includes(q)
       )
     );
-  },[search,clients]);
+  }, [search, clients]);
 
-  /* VALIDATION */
-
-  const validate = ()=>{
-    if(!form.name){
+  const validate = () => {
+    if (!form.name) {
       setError("Name is required");
       return false;
     }
-    if(!form.location){
+
+    if (!form.location) {
       setError("Location is required");
       return false;
     }
 
-    // 🇿🇦 SA PHONE VALIDATION
-    if(form.phone){
+    if (form.phone) {
       const saRegex = /^(?:\+27|0)[6-8][0-9]{8}$/;
-      if(!saRegex.test(form.phone)){
-        setError("Invalid SA phone number");
+
+      if (!saRegex.test(form.phone)) {
+        setError("Invalid South African phone number");
         return false;
       }
     }
@@ -105,423 +119,935 @@ export default function Clients() {
     return true;
   };
 
-  /* SAVE */
-
   const saveClient = async () => {
-
-    if(!validate()) return;
+    if (!validate()) return;
 
     try {
-
       const method = editing ? "PUT" : "POST";
       const url = editing ? `${API}/${editing}` : API;
 
-      await fetch(url,{
+      await fetch(url, {
         method,
-        headers:{
-          "Content-Type":"application/json",
-          Authorization:`Bearer ${token}`
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body:JSON.stringify(form)
+        body: JSON.stringify(form),
       });
 
-      setShowSuccess(true); // 🎉
-
+      setShowSuccess(true);
       setShowModal(false);
       setEditing(null);
 
       setForm({
-        name:"",
-        location:"",
-        phone:"",
-        type:"individual"
+        name: "",
+        location: "",
+        phone: "",
+        type: "individual",
       });
 
       loadClients();
-
     } catch {
-      setMsg("❌ Save failed");
+      setMsg("Save failed");
     }
   };
 
-  const confirmSave = ()=>{
+  const confirmSave = () => {
     setShowSaveConfirm(false);
     saveClient();
   };
 
-  /* DELETE */
-
-  const deleteClient = async(id)=>{
-    await fetch(`${API}/${id}`,{
-      method:"DELETE",
-      headers:{Authorization:`Bearer ${token}`}
+  const deleteClient = async (id) => {
+    await fetch(`${API}/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
-    setMsg("🗑 Client deleted");
+    setMsg("Client deleted");
     setShowDeleteModal(false);
     setDeleteId(null);
+
     loadClients();
   };
 
-  /* EDIT */
-
-  const startEdit=(c)=>{
+  const startEdit = (c) => {
     setEditing(c._id);
+
     setForm({
-      name:c.name || "",
-      location:c.location || "",
-      phone:c.phone || "",
-      type:c.type || "individual"
+      name: c.name || "",
+      location: c.location || "",
+      phone: c.phone || "",
+      type: c.type || "individual",
     });
+
     setShowModal(true);
   };
 
-  /* STATS */
-
   const totalClients = clients.length;
-  const totalWater = clients.reduce((t,c)=>t+(c.totalWater||0),0);
-  const totalRevenue = clients.reduce((t,c)=>t+(c.totalRevenue||0),0);
-  const totalDebt = clients.reduce((t,c)=>t+(c.debt||0),0);
 
-  const currency=(n)=>
-    new Intl.NumberFormat("en-ZA",{style:"currency",currency:"ZAR"}).format(n||0);
+  const totalWater = clients.reduce(
+    (t, c) => t + (c.totalWater || 0),
+    0
+  );
 
-  if(loading) return <Center>Loading clients...</Center>;
+  const totalRevenue = clients.reduce(
+    (t, c) => t + (c.totalRevenue || 0),
+    0
+  );
+
+  const totalDebt = clients.reduce(
+    (t, c) => t + (c.debt || 0),
+    0
+  );
+
+  const currency = (n) =>
+    new Intl.NumberFormat("en-ZA", {
+      style: "currency",
+      currency: "ZAR",
+    }).format(n || 0);
+
+  if (loading) {
+    return (
+      <div style={loadingStyle(theme)}>
+        Loading clients...
+      </div>
+    );
+  }
 
   return (
+    <div style={page(theme)}>
 
-    <div style={page}>
+      {/* HEADER */}
 
       <div style={header}>
-        <h1>👥 Clients</h1>
-        <button style={primaryBtn} onClick={()=>setShowModal(true)}>
+        <h1
+          style={{
+            ...pageTitle(theme),
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <Users size={32} strokeWidth={2.2} />
+          Clients
+        </h1>
+
+        <button
+          style={primaryBtn(theme)}
+          onClick={() => {
+            setEditing(null);
+
+            setForm({
+              name: "",
+              location: "",
+              phone: "",
+              type: "individual",
+            });
+
+            setShowModal(true);
+          }}
+        >
           + Add Client
         </button>
       </div>
 
-      {msg && <div style={msgBox}>{msg}</div>}
+      {/* MESSAGE */}
+
+      {msg && (
+        <div style={msgBox(theme)}>
+          {msg}
+        </div>
+      )}
+
+      {/* STATS */}
 
       <div style={statsGrid}>
-        <Stat title="Clients" value={totalClients} shade="#e5e7eb"/>
-        <Stat title="Water Sold" value={`${totalWater} L`} shade="#d1d5db"/>
-        <Stat title="Revenue" value={currency(totalRevenue)} shade="#9ca3af"/>
-        <Stat title="Debt" value={currency(totalDebt)} shade="#6b7280"/>
+
+        <Stat
+          title="Clients"
+          value={totalClients}
+          theme={theme}
+        />
+
+        <Stat
+          title="Water Sold"
+          value={`${totalWater} L`}
+          theme={theme}
+        />
+
+        <Stat
+          title="Revenue"
+          value={currency(totalRevenue)}
+          theme={theme}
+        />
+
+        <Stat
+          title="Debt"
+          value={currency(totalDebt)}
+          theme={theme}
+        />
+
       </div>
 
-      <input
-        style={searchBox}
-        placeholder="Search clients..."
-        value={search}
-        onChange={e=>setSearch(e.target.value)}
-      />
+      {/* SEARCH */}
 
-      <div style={card}>
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+        }}
+      >
+        <Search
+          size={20}
+          strokeWidth={2}
+          style={{
+            position: "absolute",
+            left: 14,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: theme.textSecondary || theme.text,
+            pointerEvents: "none",
+          }}
+        />
 
-        {filtered.length===0 ? <Empty/> : (
+        <input
+          style={{
+            ...searchBox(theme),
+            paddingLeft: 44,
+          }}
+          placeholder="Search clients..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-          <div style={{overflowX:"auto"}}>
+      {/* CLIENT TABLE */}
+
+      <div style={card(theme)}>
+
+        {filtered.length === 0 ? (
+          <Empty theme={theme} />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+
             <table style={table}>
-              <thead style={thead}>
+
+              <thead style={thead(theme)}>
                 <tr>
-                  <th style={th}>Name</th>
-                  <th style={th}>Location</th>
-                  <th style={th}>Phone</th>
-                  <th style={th}>Type</th>
-                  <th style={th}>Water</th>
-                  <th style={th}>Revenue</th>
-                  <th style={th}>Debt</th>
-                  <th style={th}>Actions</th>
+
+                  <th style={th(theme)}>
+                    Name
+                  </th>
+
+                  <th style={th(theme)}>
+                    Location
+                  </th>
+
+                  <th style={th(theme)}>
+                    Phone
+                  </th>
+
+                  <th style={th(theme)}>
+                    Type
+                  </th>
+
+                  <th style={th(theme)}>
+                    Water
+                  </th>
+
+                  <th style={th(theme)}>
+                    Revenue
+                  </th>
+
+                  <th style={th(theme)}>
+                    Debt
+                  </th>
+
+                  <th style={th(theme)}>
+                    Actions
+                  </th>
+
                 </tr>
               </thead>
 
               <tbody>
-                {filtered.map((c,i)=>(
 
-                  <tr key={c._id} style={i%2 ? rowAlt : row}>
+                {filtered.map((c, i) => (
 
-                    <td style={td}>{c.name}</td>
-                    <td style={td}>{c.location}</td>
-                    <td style={td}>{c.phone || "—"}</td>
+                  <tr
+                    key={c._id}
+                    style={
+                      i % 2
+                        ? rowAlt(theme)
+                        : row(theme)
+                    }
+                  >
 
-                    <td style={td}><Badge type={c.type}/></td>
+                    <td style={td(theme)}>
+                      {c.name}
+                    </td>
 
-                    <td style={td}>{c.totalWater || 0} L</td>
-                    <td style={td}>{currency(c.totalRevenue)}</td>
-                    <td style={td}>{currency(c.debt)}</td>
+                    <td style={td(theme)}>
+                      {c.location}
+                    </td>
 
-                    <td style={td}>
-                      <button style={smallBtn} onClick={()=>startEdit(c)}>Edit</button>
-                      <button style={dangerBtn} onClick={()=>{
-                        setDeleteId(c._id);
-                        setShowDeleteModal(true);
-                      }}>
+                    <td style={td(theme)}>
+                      {c.phone || "—"}
+                    </td>
+
+                    <td style={td(theme)}>
+                      <Badge
+                        type={c.type}
+                        theme={theme}
+                      />
+                    </td>
+
+                    <td style={td(theme)}>
+                      {c.totalWater || 0} L
+                    </td>
+
+                    <td style={td(theme)}>
+                      {currency(c.totalRevenue)}
+                    </td>
+
+                    <td style={td(theme)}>
+                      {currency(c.debt)}
+                    </td>
+
+                    <td
+                      style={{
+                        ...td(theme),
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 8,
+                      }}
+                    >
+
+                      <button
+                        style={smallBtn(theme)}
+                        onClick={() =>
+                          startEdit(c)
+                        }
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        style={dangerBtn}
+                        onClick={() => {
+                          setDeleteId(c._id);
+                          setShowDeleteModal(true);
+                        }}
+                      >
                         Delete
                       </button>
+
                     </td>
 
                   </tr>
 
                 ))}
-              </tbody>
-            </table>
-          </div>
 
+              </tbody>
+
+            </table>
+
+          </div>
         )}
 
       </div>
 
+      {/* ADD / EDIT MODAL */}
+
       {showModal && (
-        <Modal onClose={()=>{setShowModal(false);setEditing(null)}}>
+        <Modal
+          theme={theme}
+          onClose={() => {
+            setShowModal(false);
+            setEditing(null);
+          }}
+        >
 
-          <h3>{editing ? "Update Client" : "Add Client"}</h3>
+          <h3 style={modalHeading(theme)}>
+            {editing
+              ? "Update Client"
+              : "Add Client"}
+          </h3>
 
-          <input ref={nameRef} style={input} placeholder="Name"
+          <input
+            ref={nameRef}
+            style={input(theme)}
+            placeholder="Name"
             value={form.name}
-            onChange={e=>setForm({...form,name:e.target.value})}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                name: e.target.value,
+              })
+            }
           />
 
-          <input style={input} placeholder="Location"
+          <input
+            style={input(theme)}
+            placeholder="Location"
             value={form.location}
-            onChange={e=>setForm({...form,location:e.target.value})}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                location: e.target.value,
+              })
+            }
           />
 
-          <input style={input} placeholder="Phone"
+          <input
+            style={input(theme)}
+            placeholder="Phone"
             value={form.phone}
-            onChange={e=>setForm({...form,phone:e.target.value})}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                phone: e.target.value,
+              })
+            }
           />
 
-          <select style={input}
+          <select
+            style={input(theme)}
             value={form.type}
-            onChange={e=>setForm({...form,type:e.target.value})}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                type: e.target.value,
+              })
+            }
           >
-            <option value="individual">Individual</option>
-            <option value="business">Business</option>
+
+            <option value="individual">
+              Individual
+            </option>
+
+            <option value="business">
+              Business
+            </option>
+
           </select>
 
-          <button style={primaryBtn} onClick={()=>setShowSaveConfirm(true)}>
-            {editing ? "Update Client" : "Create Client"}
+          <button
+            style={primaryBtn(theme)}
+            onClick={() =>
+              setShowSaveConfirm(true)
+            }
+          >
+            {editing
+              ? "Update Client"
+              : "Create Client"}
           </button>
 
         </Modal>
       )}
 
-      {/* SAVE CONFIRM */}
+      {/* SAVE CONFIRMATION */}
+
       {showSaveConfirm && (
-        <Modal onClose={()=>setShowSaveConfirm(false)}>
-          <h3>💾 Confirm</h3>
-          <p>Save this client?</p>
-          <button style={primaryBtn} onClick={confirmSave}>Yes</button>
+        <Modal
+          theme={theme}
+          onClose={() =>
+            setShowSaveConfirm(false)
+          }
+        >
+
+          <h3
+            style={{
+              ...modalHeading(theme),
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Save size={22} strokeWidth={2.2} />
+            Confirm
+          </h3>
+
+          <p style={modalText(theme)}>
+            Save this client?
+          </p>
+
+          <button
+            style={primaryBtn(theme)}
+            onClick={confirmSave}
+          >
+            Yes
+          </button>
+
         </Modal>
       )}
 
-      {/* DELETE */}
+      {/* DELETE CONFIRMATION */}
+
       {showDeleteModal && (
-        <Modal onClose={()=>setShowDeleteModal(false)}>
-          <h3>⚠️ Delete</h3>
-          <p>Delete this client?</p>
-          <button style={dangerBtn} onClick={()=>deleteClient(deleteId)}>Delete</button>
+        <Modal
+          theme={theme}
+          onClose={() =>
+            setShowDeleteModal(false)
+          }
+        >
+
+          <h3
+            style={{
+              ...modalHeading(theme),
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              color: "#dc2626",
+            }}
+          >
+            <AlertTriangle size={22} strokeWidth={2.2} />
+            Delete
+          </h3>
+
+          <p style={modalText(theme)}>
+            Delete this client?
+          </p>
+
+          <button
+            style={dangerBtn}
+            onClick={() =>
+              deleteClient(deleteId)
+            }
+          >
+            Delete
+          </button>
+
         </Modal>
       )}
 
-      {/* SUCCESS 🎉 */}
+      {/* SUCCESS */}
+
       {showSuccess && (
-        <Modal onClose={()=>setShowSuccess(false)}>
-          <h3 style={{color:"#16a34a"}}>🎉 Success</h3>
-          <p>Client saved successfully!</p>
+        <Modal
+          theme={theme}
+          onClose={() =>
+            setShowSuccess(false)
+          }
+        >
+
+          <h3
+            style={{
+              color: "#16a34a",
+              marginTop: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <CheckCircle size={22} strokeWidth={2.2} />
+            Success
+          </h3>
+
+          <p style={modalText(theme)}>
+            Client saved successfully!
+          </p>
+
         </Modal>
       )}
 
       {/* ERROR */}
+
       {error && (
-        <Modal onClose={()=>setError("")}>
-          <h3>❌ Error</h3>
-          <p>{error}</p>
+        <Modal
+          theme={theme}
+          onClose={() => setError("")}
+        >
+
+          <h3
+            style={{
+              ...modalHeading(theme),
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              color: "#dc2626",
+            }}
+          >
+            <XCircle size={22} strokeWidth={2.2} />
+            Error
+          </h3>
+
+          <p style={modalText(theme)}>
+            {error}
+          </p>
+
         </Modal>
       )}
 
     </div>
   );
 }
-/* COMPONENTS */
 
-const Stat=({title,value,shade})=>(
 
-  <div style={{...statCard, background:shade}}>
+/* =========================================================
+   COMPONENTS
+========================================================= */
 
-    <div style={{fontSize:14,color:"#374151"}}>
+const Stat = ({ title, value, theme }) => (
+  <div style={statCard(theme)}>
+
+    <div
+      style={{
+        fontSize: 14,
+        color: theme.textSecondary || theme.text,
+        fontWeight: 600,
+      }}
+    >
       {title}
     </div>
 
-    <div style={{fontSize:22,fontWeight:700,color:"#111827"}}>
+    <div
+      style={{
+        fontSize: 24,
+        fontWeight: 700,
+        marginTop: 8,
+        color: theme.text,
+      }}
+    >
       {value}
     </div>
 
   </div>
-
 );
 
-const Modal=({children,onClose})=>(
 
+const Modal = ({
+  children,
+  onClose,
+  theme,
+}) => (
   <div style={overlay}>
 
-    <div style={modal}>
+    <div style={modal(theme)}>
 
       {children}
 
-      <button style={closeBtn} onClick={onClose}>
+      <button
+        style={closeBtn(theme)}
+        onClick={onClose}
+      >
         Close
       </button>
 
     </div>
 
   </div>
-
 );
 
-const Badge=({type})=>(
 
-  <span style={{
-    padding:"4px 10px",
-    borderRadius:20,
-    fontSize:12,
-    background:"#e5e7eb",
-    color:"#111827"
-  }}>
+const Badge = ({ type, theme }) => (
+  <span
+    style={{
+      padding: "5px 10px",
+      borderRadius: 20,
+      fontSize: 12,
+      background:
+        type === "business"
+          ? theme.primary
+          : theme.tableHeader || theme.card,
+      color:
+        type === "business"
+          ? "white"
+          : theme.text,
+      fontWeight: 600,
+      display: "inline-block",
+    }}
+  >
     {type}
   </span>
-
 );
 
-const Empty=()=>(
-  <div style={{padding:30,opacity:0.6}}>No clients yet</div>
-);
 
-const Center=({children})=>(
-  <div style={{
-    display:"flex",
-    height:"60vh",
-    alignItems:"center",
-    justifyContent:"center"
-  }}>
-    {children}
+const Empty = ({ theme }) => (
+  <div
+    style={{
+      textAlign: "center",
+      padding: 50,
+      color: theme.textSecondary || theme.text,
+    }}
+  >
+
+    <h3 style={{ color: theme.text }}>
+      No clients found
+    </h3>
+
+    <p>
+      Create your first client.
+    </p>
+
   </div>
 );
 
-/* STYLES */
 
-const page={padding:40,background:"#f3f4f6",minHeight:"100vh"};
+/* =========================================================
+   STYLES
+========================================================= */
 
-const header={
-  display:"flex",
-  justifyContent:"space-between",
-  alignItems:"center",
-  marginBottom:20
+const page = (theme) => ({
+  padding: "clamp(15px,3vw,25px)",
+  background: "transparent",
+  color: theme.text,
+  minHeight: "100vh",
+  width: "100%",
+  boxSizing: "border-box",
+  overflowX: "hidden",
+});
+
+
+const header = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 15,
+  marginBottom: 20,
 };
 
-const statsGrid={
-  display:"grid",
-  gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",
-  gap:15,
-  marginBottom:20
+
+const pageTitle = (theme) => ({
+  margin: 0,
+  color: theme.primary,
+  fontSize: "clamp(24px,5vw,32px)",
+  fontWeight: 700,
+});
+
+
+const statsGrid = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit,minmax(180px,1fr))",
+  gap: 15,
+  marginBottom: 20,
+  width: "100%",
 };
 
-const statCard={
-  padding:20,
-  borderRadius:12,
-  boxShadow:"0 4px 15px rgba(0,0,0,0.05)"
+
+const statCard = (theme) => ({
+  background: theme.card,
+  color: theme.text,
+  padding: 18,
+  borderRadius: 15,
+  boxShadow: "0 8px 25px rgba(0,0,0,.08)",
+  width: "100%",
+  boxSizing: "border-box",
+  textAlign: "center",
+  border: `1px solid ${theme.border}`,
+});
+
+
+const searchBox = (theme) => ({
+  width: "100%",
+  padding: 14,
+  margin: "20px 0",
+  borderRadius: 10,
+  border: `1px solid ${theme.border}`,
+  background: theme.input || theme.card,
+  color: theme.text,
+  fontSize: 16,
+  boxSizing: "border-box",
+  outline: "none",
+});
+
+
+const card = (theme) => ({
+  background: theme.card,
+  color: theme.text,
+  padding: 20,
+  borderRadius: 18,
+  boxShadow: "0 10px 30px rgba(0,0,0,.08)",
+  width: "100%",
+  boxSizing: "border-box",
+  border: `1px solid ${theme.border}`,
+});
+
+
+const table = {
+  width: "100%",
+  minWidth: 850,
+  borderCollapse: "collapse",
 };
 
-const searchBox={
-  width:"100%",
-  padding:10,
-  marginBottom:15,
-  borderRadius:8,
-  border:"1px solid #d1d5db"
+
+const thead = (theme) => ({
+  background: theme.primary,
+  color: "white",
+});
+
+
+const th = (theme) => ({
+  padding: 12,
+  textAlign: "left",
+  whiteSpace: "nowrap",
+  fontSize: 14,
+  color: "white",
+});
+
+
+const td = (theme) => ({
+  padding: 12,
+  borderBottom: `1px solid ${theme.border}`,
+  color: theme.text,
+  whiteSpace: "nowrap",
+  fontSize: 14,
+});
+
+
+const row = (theme) => ({
+  background: theme.card,
+});
+
+
+const rowAlt = (theme) => ({
+  background:
+    theme.tableHeader ||
+    theme.input ||
+    theme.card,
+});
+
+
+const primaryBtn = (theme) => ({
+  background:
+    `linear-gradient(135deg, ${theme.primary}, #1d4ed8)`,
+  color: "white",
+  border: "none",
+  padding: "12px 18px",
+  borderRadius: 10,
+  cursor: "pointer",
+  fontWeight: 600,
+  width: "100%",
+  maxWidth: 220,
+  minHeight: 46,
+});
+
+
+const smallBtn = (theme) => ({
+  padding: "8px 14px",
+  marginRight: 8,
+  marginBottom: 8,
+  background: theme.tableHeader || theme.primary,
+  color: "white",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+  minWidth: 70,
+  minHeight: 38,
+  fontWeight: 600,
+});
+
+
+const dangerBtn = {
+  padding: "8px 14px",
+  marginBottom: 8,
+  background: "#ef4444",
+  color: "white",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+  minWidth: 70,
+  minHeight: 38,
+  fontWeight: 600,
 };
 
-const card={
-  background:"white",
-  padding:20,
-  borderRadius:16,
-  boxShadow:"0 10px 30px rgba(0,0,0,0.08)"
+
+const input = (theme) => ({
+  display: "block",
+  width: "100%",
+  padding: 12,
+  marginTop: 12,
+  border: `1px solid ${theme.border}`,
+  borderRadius: 8,
+  background: theme.input || theme.card,
+  color: theme.text,
+  boxSizing: "border-box",
+  outline: "none",
+  fontSize: 15,
+});
+
+
+const overlay = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,.55)",
+  backdropFilter: "blur(4px)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 999,
+  padding: 15,
+  boxSizing: "border-box",
 };
 
-const table={width:"100%",borderCollapse:"collapse"};
 
-const thead={background:"#374151",color:"white"};
+const modal = (theme) => ({
+  background: theme.card,
+  color: theme.text,
+  width: "100%",
+  maxWidth: 500,
+  borderRadius: 16,
+  padding: 25,
+  boxSizing: "border-box",
+  boxShadow: "0 15px 40px rgba(0,0,0,.2)",
+  border: `1px solid ${theme.border}`,
+  maxHeight: "90vh",
+  overflowY: "auto",
+});
 
-const th={padding:12,textAlign:"left"};
 
-const td={padding:12,borderBottom:"1px solid #e5e7eb"};
+const modalHeading = (theme) => ({
+  marginTop: 0,
+  color: theme.text,
+});
 
-const row={background:"white"};
 
-const rowAlt={background:"#f9fafb"};
+const modalText = (theme) => ({
+  color: theme.textSecondary || theme.text,
+});
 
-const primaryBtn={
-  padding:"10px 16px",
-  background:"#4b5563",
-  border:"none",
-  borderRadius:8,
-  color:"white",
-  cursor:"pointer"
-};
 
-const smallBtn={
-  marginRight:8,
-  padding:"6px 10px",
-  background:"#d1d5db",
-  border:"none",
-  borderRadius:6,
-  cursor:"pointer"
-};
+const closeBtn = (theme) => ({
+  marginTop: 20,
+  width: "100%",
+  padding: 12,
+  background: theme.tableHeader || "#111827",
+  color: "white",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+  minHeight: 42,
+});
 
-const dangerBtn={
-  padding:"6px 10px",
-  background:"#ef4444",
-  border:"none",
-  borderRadius:6,
-  color:"white",
-  cursor:"pointer"
-};
 
-const input={
-  display:"block",
-  width:"100%",
-  padding:10,
-  marginTop:10,
-  border:"1px solid #ddd",
-  borderRadius:8
-};
+const msgBox = (theme) => ({
+  background:
+    theme.tableHeader ||
+    theme.input ||
+    theme.card,
+  color: theme.text,
+  padding: 12,
+  borderRadius: 8,
+  marginBottom: 15,
+  border: `1px solid ${theme.border}`,
+});
 
-const overlay={
-  position:"fixed",
-  inset:0,
-  background:"rgba(0,0,0,0.35)",
-  display:"flex",
-  alignItems:"center",
-  justifyContent:"center"
-};
 
-const modal={
-  background:"white",
-  padding:25,
-  borderRadius:12,
-  width:360
-};
-
-const closeBtn={
-  marginTop:15,
-  padding:10,
-  background:"#111827",
-  color:"white",
-  border:"none",
-  borderRadius:6
-};
-
-const msgBox={
-  background:"#e5e7eb",
-  padding:10,
-  borderRadius:6,
-  marginBottom:10
-};
+const loadingStyle = (theme) => ({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  minHeight: "60vh",
+  color: theme.text,
+  background: "transparent",
+});

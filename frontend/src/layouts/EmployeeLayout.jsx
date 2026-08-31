@@ -1,45 +1,83 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import {
+  Menu,
+  X,
+  Droplets,
+  LayoutDashboard,
+  DollarSign,
+  ScrollText,
+  BookOpen,
+  ClipboardList,
+  Truck,
+  Trophy,
+  User,
+  LogOut
+} from "lucide-react";
+
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 function EmployeeLayout() {
-
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const resize = () => setIsMobile(window.innerWidth < 768);
+    const resize = () => {
+      setIsMobile(window.innerWidth < 768);
+
+      if (window.innerWidth >= 768) {
+        setMenuOpen(false);
+      }
+    };
+
     window.addEventListener("resize", resize);
+
     return () => window.removeEventListener("resize", resize);
   }, []);
 
   const closeMenu = () => {
-    if (isMobile) setMenuOpen(false);
+    if (isMobile) {
+      setMenuOpen(false);
+    }
   };
 
- const handleLogout = () => {
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("user");
 
-  localStorage.removeItem("token");
-  localStorage.removeItem("role");
-  localStorage.removeItem("user");
-
-  navigate("/");
-
-};
+    navigate("/");
+  };
 
   return (
     <div style={layout}>
 
-      {isMobile && (
-        <button style={menuBtn} onClick={() => setMenuOpen(true)}>
-          ☰
+      {/* MOBILE MENU BUTTON */}
+
+      {isMobile && !menuOpen && (
+        <button
+          style={menuBtn}
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+        >
+          <Menu size={24} />
         </button>
       )}
 
+      {/* OVERLAY */}
+
+      {isMobile && menuOpen && (
+        <div
+          style={overlay}
+          onClick={closeMenu}
+        />
+      )}
+
       {/* SIDEBAR */}
+
       <div
         style={{
           ...sidebar,
@@ -51,38 +89,103 @@ function EmployeeLayout() {
         }}
       >
 
+        {/* MOBILE CLOSE BUTTON */}
+
         {isMobile && (
-          <button style={closeBtn} onClick={closeMenu}>
-            ✕
+          <button
+            style={closeBtn}
+            onClick={closeMenu}
+            aria-label="Close menu"
+          >
+            <X size={24} />
           </button>
         )}
 
-        <h2 style={{ marginBottom: 30 }}>💧 Sediba</h2>
+        {/* LOGO */}
 
-        {/* CORE */}
-        <Nav to="/employee/dashboard" icon="📊" label="Dashboard" onNavigate={closeMenu} />
-        <Nav to="/employee/record-sale" icon="💰" label="Record Sale" onNavigate={closeMenu} />
-        <Nav to="/employee/my-sales" icon="📜" label="My Sales" onNavigate={closeMenu} />
+        <h2 style={logo}>
+          <Droplets size={27} />
+          <span>Sediba</span>
+        </h2>
 
-        {/* NEW FEATURES */}
-        <Nav to="/employee/books" icon="📚" label="Books" onNavigate={closeMenu} />
-        <Nav to="/employee/readings" icon="🧾" label="Meter Readings" onNavigate={closeMenu} />
-        <Nav to="/employee/deliveries" icon="🚚" label="Deliveries" onNavigate={closeMenu} />
+        {/* NAVIGATION */}
 
-        {/* PERFORMANCE */}
-        <Nav to="/employee/top-employees" icon="🏆" label="Top Employees" onNavigate={closeMenu} />
+        <Nav
+          to="/employee/dashboard"
+          icon={<LayoutDashboard size={20} />}
+          label="Dashboard"
+          onNavigate={closeMenu}
+        />
 
-        {/* USER */}
-        <Nav to="/employee/profile" icon="👤" label="Profile" onNavigate={closeMenu} />
+        <Nav
+          to="/employee/record-sale"
+          icon={<DollarSign size={20} />}
+          label="Record Sale"
+          onNavigate={closeMenu}
+        />
 
-        <button onClick={handleLogout} style={logoutBtn}>
-          Logout
+        <Nav
+          to="/employee/my-sales"
+          icon={<ScrollText size={20} />}
+          label="My Sales"
+          onNavigate={closeMenu}
+        />
+
+        <Nav
+          to="/employee/books"
+          icon={<BookOpen size={20} />}
+          label="Books"
+          onNavigate={closeMenu}
+        />
+
+        <Nav
+          to="/employee/readings"
+          icon={<ClipboardList size={20} />}
+          label="Meter Readings"
+          onNavigate={closeMenu}
+        />
+
+        <Nav
+          to="/employee/deliveries"
+          icon={<Truck size={20} />}
+          label="Deliveries"
+          onNavigate={closeMenu}
+        />
+
+        <Nav
+          to="/employee/top-employees"
+          icon={<Trophy size={20} />}
+          label="Top Employees"
+          onNavigate={closeMenu}
+        />
+
+        <Nav
+          to="/employee/profile"
+          icon={<User size={20} />}
+          label="Profile"
+          onNavigate={closeMenu}
+        />
+
+        {/* LOGOUT */}
+
+        <button
+          onClick={handleLogout}
+          style={logoutBtn}
+        >
+          <LogOut size={19} />
+          <span>Logout</span>
         </button>
 
       </div>
 
-      {/* MAIN AREA */}
-      <div style={{ ...main, marginLeft: isMobile ? 0 : 220 }}>
+      {/* MAIN */}
+
+      <div
+        style={{
+          ...main,
+          marginLeft: isMobile ? 0 : 240
+        }}
+      >
 
         <Header />
 
@@ -98,45 +201,83 @@ function EmployeeLayout() {
   );
 }
 
-/* NAV ITEM */
 
-const Nav = ({ to, label, icon, onNavigate }) => (
+/* NAVIGATION COMPONENT */
+
+const Nav = ({ to, icon, label, onNavigate }) => (
   <NavLink
     to={to}
     onClick={onNavigate}
     style={({ isActive }) => ({
       ...nav,
       background: isActive ? "#334155" : "transparent",
-      fontWeight: isActive ? "600" : "400",
-      transform: isActive ? "translateX(4px)" : "translateX(0)"
+      fontWeight: isActive ? "600" : "500"
     })}
   >
-    <span style={{ marginRight: 10 }}>{icon}</span>
-    {label}
+
+    <span style={navIcon}>
+      {icon}
+    </span>
+
+    <span>
+      {label}
+    </span>
+
   </NavLink>
 );
 
-/* STYLES */
+
+/* MAIN LAYOUT */
 
 const layout = {
   display: "flex",
   minHeight: "100vh",
-  background: "#f4f6f9",
+  background: "#f5f7fb",
   overflowX: "hidden"
 };
 
+
+/* MOBILE OVERLAY */
+
+const overlay = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,.45)",
+  zIndex: 1090
+};
+
+
+/* SIDEBAR */
+
 const sidebar = {
-  width: 220,
+  width: 240,
   background: "#1e293b",
-  color: "white",
-  padding: 20,
+  color: "#fff",
   position: "fixed",
   top: 0,
-  bottom: 0,
   left: 0,
-  transition: "transform .3s ease",
-  zIndex: 1100
+  bottom: 0,
+  padding: 20,
+  transition: ".3s",
+  zIndex: 1100,
+  boxShadow: "0 10px 30px rgba(0,0,0,.35)",
+  overflowY: "auto"
 };
+
+
+/* LOGO */
+
+const logo = {
+  marginBottom: 35,
+  textAlign: "center",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8
+};
+
+
+/* MAIN */
 
 const main = {
   flex: 1,
@@ -145,45 +286,81 @@ const main = {
   width: "100%"
 };
 
+
+/* CONTENT */
+
 const content = {
   flex: 1,
-  padding: 30
+  padding: 25
 };
+
+
+/* NAVIGATION */
 
 const nav = {
-  display: "block",
-  color: "white",
-  marginBottom: 15,
+  display: "flex",
+  alignItems: "center",
+  color: "#fff",
   textDecoration: "none",
-  fontSize: 15,
-  padding: "10px 12px",
-  borderRadius: 6,
-  transition: "all .2s"
+  padding: "12px 14px",
+  marginBottom: 8,
+  borderRadius: 8,
+  transition: ".2s"
 };
 
-const logoutBtn = {
-  marginTop: 30,
-  padding: "8px 12px",
-  background: "#ef4444",
-  border: "none",
-  color: "white",
-  cursor: "pointer",
-  borderRadius: 4
+
+/* ICON */
+
+const navIcon = {
+  width: 24,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: 12
 };
+
+
+/* LOGOUT */
+
+const logoutBtn = {
+  marginTop: 35,
+  width: "100%",
+  padding: 12,
+  background: "#ef4444",
+  color: "#fff",
+  border: "none",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontWeight: "bold",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8
+};
+
+
+/* MOBILE MENU BUTTON */
 
 const menuBtn = {
   position: "fixed",
-  top: 15,
-  left: 15,
+  top: 16,
+  left: 16,
   zIndex: 1200,
   background: "#1e293b",
-  color: "white",
+  color: "#fff",
   border: "none",
-  padding: "10px 14px",
-  borderRadius: 8,
+  width: 45,
+  height: 45,
+  borderRadius: 10,
   cursor: "pointer",
-  fontSize: 18
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 4px 12px rgba(0,0,0,.3)"
 };
+
+
+/* MOBILE CLOSE BUTTON */
 
 const closeBtn = {
   position: "absolute",
@@ -191,9 +368,14 @@ const closeBtn = {
   right: 15,
   background: "transparent",
   border: "none",
-  color: "white",
-  fontSize: 20,
-  cursor: "pointer"
+  color: "#fff",
+  width: 40,
+  height: 40,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
 };
+
 
 export default EmployeeLayout;
