@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import socket from "./socket";
-
+import SessionTimeout from "./components/SessionTimeout";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeePage from "./pages/EmployeePage";
@@ -27,56 +27,42 @@ import EmployeeMySales from "./pages/EmployeeMySales";
 import Books from "./pages/Books";
 import Readings from "./pages/Readings";
 import Deliveries from "./pages/Deliveries";
-
 import { ThemeProvider } from "./context/ThemeContext";
-
 import "./styles/responsive.css";
 
-/* 🔐 Protected Route */
-
+/* 🔐 PROTECTED ROUTE */
 function PrivateRoute({ children, role }) {
   const token = localStorage.getItem("token");
   const userRole = localStorage.getItem("role");
-
   if (!token) return <Navigate to="/" replace />;
   if (role && userRole !== role) return <Navigate to="/" replace />;
-
   return children;
 }
 
 function App() {
-
   /* 🔔 SOCKET CONNECTION */
-
   useEffect(() => {
-
     socket.on("connect", () => {
       console.log("🔌 Connected:", socket.id);
     });
-
     socket.on("newSale", (data) => {
       console.log("🔔 New Sale Notification:", data);
     });
-
     return () => {
       socket.off("newSale");
     };
-
   }, []);
 
   return (
-
     <ThemeProvider>
-
       <Router>
-
+        {/* 🔐 5-MINUTE SESSION SECURITY TIMEOUT */}
+        <SessionTimeout />
         <Routes>
-
           {/* PUBLIC */}
           <Route path="/" element={<Login />} />
 
           {/* ================= ADMIN ROUTES ================= */}
-
           <Route
             path="/admin"
             element={
@@ -85,7 +71,6 @@ function App() {
               </PrivateRoute>
             }
           >
-
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="employees" element={<AdminEmployees />} />
             <Route path="meters" element={<Meters />} />
@@ -93,7 +78,7 @@ function App() {
             <Route path="tank-refills" element={<AdminTankRefills />} />
             <Route path="reports" element={<Reports />} />
             <Route path="clients" element={<Clients />} />
-            <Route path="top-employees" element={<TopEmployees />} />.
+            <Route path="top-employees" element={<TopEmployees />} />
             <Route path="clients/:id" element={<ClientProfile />} />
             <Route path="profile" element={<Profile />} />
             <Route path="products" element={<AdminProducts />} />
@@ -102,14 +87,10 @@ function App() {
             <Route path="expenses" element={<AdminExpenses />} />
             <Route path="alerts" element={<AdminAlerts />} />
             <Route path="settings" element={<AdminSettings />} />
-            
-
             <Route index element={<Navigate to="dashboard" replace />} />
-
           </Route>
 
           {/* ================= EMPLOYEE ROUTES ================= */}
-
           <Route
             path="/employee"
             element={
@@ -118,32 +99,20 @@ function App() {
               </PrivateRoute>
             }
           >
-
             <Route path="dashboard" element={<EmployeePage />} />
             <Route path="record-sale" element={<RecordSale />} />
             <Route path="profile" element={<Profile />} />
             <Route path="my-sales" element={<EmployeeMySales />} />
-
-            {/* ✅ NEW ROUTES */}
             <Route path="books" element={<Books />} />
             <Route path="readings" element={<Readings />} />
             <Route path="deliveries" element={<Deliveries />} />
-
-            {/* ✅ EXISTING */}
             <Route path="top-employees" element={<TopEmployees />} />
-
             <Route index element={<Navigate to="dashboard" replace />} />
-
           </Route>
-
         </Routes>
-
       </Router>
-
     </ThemeProvider>
-
   );
-
 }
 
 export default App;
