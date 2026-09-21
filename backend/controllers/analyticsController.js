@@ -1,5 +1,5 @@
 const WaterSale = require("../models/WaterSale");
-const User = require("../models/User");
+const User = require("../models/user");
 
 // =====================================================
 // TOTAL REVENUE
