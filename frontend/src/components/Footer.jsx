@@ -83,7 +83,7 @@ const Footer = () => {
 
               © {new Date().getFullYear()}
               {" "}
-              Sediba Water System
+              Sediba Waters Business Workspace
 
             </span>
 

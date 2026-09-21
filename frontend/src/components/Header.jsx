@@ -147,10 +147,10 @@ const Header = () => {
         </div>
         <div style={brandText}>
           <div style={systemName(darkMode)}>
-            Sediba Still Water
+            Sediba Waters
           </div>
           <div style={systemSubtitle(darkMode)}>
-            Management System
+            Business Workspace
           </div>
         </div>
       </div>
