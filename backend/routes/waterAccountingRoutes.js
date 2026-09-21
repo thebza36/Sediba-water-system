@@ -3,11 +3,12 @@ const router = express.Router();
 
 const WaterQuotation = require("../models/WaterQuotation");
 const WaterSalesOrder = require("../models/WaterSalesOrder");
+const { protect } = require("../middleware/authMiddleware");
 
 /* =========================
    CREATE QUOTATION
 ========================= */
-router.post("/quotation", async (req, res) => {
+router.post("/quotation", protect, async (req, res) => {
   try {
     const { customerName, liters, pricePerLiter } = req.body;
 
@@ -30,7 +31,7 @@ router.post("/quotation", async (req, res) => {
 /* =========================
    GET QUOTATIONS
 ========================= */
-router.get("/quotation", async (req, res) => {
+router.get("/quotation", protect, async (req, res) => {
   try {
     const data = await WaterQuotation.find().sort({ createdAt: -1 });
     res.json(data);
@@ -42,7 +43,7 @@ router.get("/quotation", async (req, res) => {
 /* =========================
    CONVERT → SALES ORDER
 ========================= */
-router.post("/quotation/:id/convert", async (req, res) => {
+router.post("/quotation/:id/convert", protect, async (req, res) => {
   try {
     const q = await WaterQuotation.findById(req.params.id);
 
@@ -69,7 +70,7 @@ router.post("/quotation/:id/convert", async (req, res) => {
 /* =========================
    GET SALES ORDERS
 ========================= */
-router.get("/sales-orders", async (req, res) => {
+router.get("/sales-orders", protect, async (req, res) => {
   try {
     const orders = await WaterSalesOrder.find().sort({ createdAt: -1 });
     res.json(orders);

@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+
 import {
   Menu,
   X,
@@ -12,7 +13,8 @@ import {
   Truck,
   Trophy,
   User,
-  LogOut
+  LogOut,
+  FlaskConical,
 } from "lucide-react";
 
 import Header from "../components/Header";
@@ -23,6 +25,10 @@ function EmployeeLayout() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  /* =========================================================
+     RESPONSIVE MOBILE MENU
+  ========================================================= */
 
   useEffect(() => {
     const resize = () => {
@@ -38,11 +44,19 @@ function EmployeeLayout() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  /* =========================================================
+     CLOSE MOBILE MENU
+  ========================================================= */
+
   const closeMenu = () => {
     if (isMobile) {
       setMenuOpen(false);
     }
   };
+
+  /* =========================================================
+     LOGOUT
+  ========================================================= */
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -55,7 +69,9 @@ function EmployeeLayout() {
   return (
     <div style={layout}>
 
-      {/* MOBILE MENU BUTTON */}
+      {/* =====================================================
+          MOBILE MENU BUTTON
+      ===================================================== */}
 
       {isMobile && !menuOpen && (
         <button
@@ -67,7 +83,9 @@ function EmployeeLayout() {
         </button>
       )}
 
-      {/* OVERLAY */}
+      {/* =====================================================
+          MOBILE OVERLAY
+      ===================================================== */}
 
       {isMobile && menuOpen && (
         <div
@@ -76,7 +94,9 @@ function EmployeeLayout() {
         />
       )}
 
-      {/* SIDEBAR */}
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
 
       <div
         style={{
@@ -85,11 +105,13 @@ function EmployeeLayout() {
             ? menuOpen
               ? "translateX(0)"
               : "translateX(-100%)"
-            : "translateX(0)"
+            : "translateX(0)",
         }}
       >
 
-        {/* MOBILE CLOSE BUTTON */}
+        {/* =================================================
+            MOBILE CLOSE BUTTON
+        ================================================= */}
 
         {isMobile && (
           <button
@@ -101,14 +123,18 @@ function EmployeeLayout() {
           </button>
         )}
 
-        {/* LOGO */}
+        {/* =================================================
+            LOGO
+        ================================================= */}
 
         <h2 style={logo}>
           <Droplets size={27} />
           <span>Sediba</span>
         </h2>
 
-        {/* NAVIGATION */}
+        {/* =================================================
+            NAVIGATION
+        ================================================= */}
 
         <Nav
           to="/employee/dashboard"
@@ -145,6 +171,17 @@ function EmployeeLayout() {
           onNavigate={closeMenu}
         />
 
+        {/* =================================================
+            WATER TESTS
+        ================================================= */}
+
+        <Nav
+          to="/employee/water-tests"
+          icon={<FlaskConical size={20} />}
+          label="Water Tests"
+          onNavigate={closeMenu}
+        />
+
         <Nav
           to="/employee/deliveries"
           icon={<Truck size={20} />}
@@ -166,7 +203,9 @@ function EmployeeLayout() {
           onNavigate={closeMenu}
         />
 
-        {/* LOGOUT */}
+        {/* =================================================
+            LOGOUT
+        ================================================= */}
 
         <button
           onClick={handleLogout}
@@ -178,20 +217,28 @@ function EmployeeLayout() {
 
       </div>
 
-      {/* MAIN */}
+      {/* =====================================================
+          MAIN
+      ===================================================== */}
 
       <div
         style={{
           ...main,
-          marginLeft: isMobile ? 0 : 240
+          marginLeft: isMobile ? 0 : 240,
         }}
       >
 
+        {/* HEADER */}
+
         <Header />
+
+        {/* CONTENT */}
 
         <div style={content}>
           <Outlet />
         </div>
+
+        {/* FOOTER */}
 
         <Footer />
 
@@ -201,17 +248,27 @@ function EmployeeLayout() {
   );
 }
 
+/* =========================================================
+   NAVIGATION COMPONENT
+========================================================= */
 
-/* NAVIGATION COMPONENT */
-
-const Nav = ({ to, icon, label, onNavigate }) => (
+const Nav = ({
+  to,
+  icon,
+  label,
+  onNavigate,
+}) => (
   <NavLink
     to={to}
     onClick={onNavigate}
     style={({ isActive }) => ({
       ...nav,
-      background: isActive ? "#334155" : "transparent",
-      fontWeight: isActive ? "600" : "500"
+      background: isActive
+        ? "#334155"
+        : "transparent",
+      fontWeight: isActive
+        ? "600"
+        : "500",
     })}
   >
 
@@ -226,28 +283,31 @@ const Nav = ({ to, icon, label, onNavigate }) => (
   </NavLink>
 );
 
-
-/* MAIN LAYOUT */
+/* =========================================================
+   MAIN LAYOUT
+========================================================= */
 
 const layout = {
   display: "flex",
   minHeight: "100vh",
   background: "#f5f7fb",
-  overflowX: "hidden"
+  overflowX: "hidden",
 };
 
-
-/* MOBILE OVERLAY */
+/* =========================================================
+   MOBILE OVERLAY
+========================================================= */
 
 const overlay = {
   position: "fixed",
   inset: 0,
   background: "rgba(0,0,0,.45)",
-  zIndex: 1090
+  zIndex: 1090,
 };
 
-
-/* SIDEBAR */
+/* =========================================================
+   SIDEBAR
+========================================================= */
 
 const sidebar = {
   width: 240,
@@ -261,11 +321,13 @@ const sidebar = {
   transition: ".3s",
   zIndex: 1100,
   boxShadow: "0 10px 30px rgba(0,0,0,.35)",
-  overflowY: "auto"
+  overflowY: "auto",
+  boxSizing: "border-box",
 };
 
-
-/* LOGO */
+/* =========================================================
+   LOGO
+========================================================= */
 
 const logo = {
   marginBottom: 35,
@@ -273,29 +335,33 @@ const logo = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8
+  gap: 8,
 };
 
-
-/* MAIN */
+/* =========================================================
+   MAIN
+========================================================= */
 
 const main = {
   flex: 1,
   display: "flex",
   flexDirection: "column",
-  width: "100%"
+  width: "100%",
 };
 
-
-/* CONTENT */
+/* =========================================================
+   CONTENT
+========================================================= */
 
 const content = {
   flex: 1,
-  padding: 25
+  padding: 25,
+  boxSizing: "border-box",
 };
 
-
-/* NAVIGATION */
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
 const nav = {
   display: "flex",
@@ -305,22 +371,27 @@ const nav = {
   padding: "12px 14px",
   marginBottom: 8,
   borderRadius: 8,
-  transition: ".2s"
+  transition: ".2s",
+  width: "100%",
+  boxSizing: "border-box",
 };
 
-
-/* ICON */
+/* =========================================================
+   NAV ICON
+========================================================= */
 
 const navIcon = {
   width: 24,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  marginRight: 12
+  marginRight: 12,
+  flexShrink: 0,
 };
 
-
-/* LOGOUT */
+/* =========================================================
+   LOGOUT
+========================================================= */
 
 const logoutBtn = {
   marginTop: 35,
@@ -335,11 +406,12 @@ const logoutBtn = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8
+  gap: 8,
 };
 
-
-/* MOBILE MENU BUTTON */
+/* =========================================================
+   MOBILE MENU BUTTON
+========================================================= */
 
 const menuBtn = {
   position: "fixed",
@@ -356,11 +428,12 @@ const menuBtn = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  boxShadow: "0 4px 12px rgba(0,0,0,.3)"
+  boxShadow: "0 4px 12px rgba(0,0,0,.3)",
 };
 
-
-/* MOBILE CLOSE BUTTON */
+/* =========================================================
+   MOBILE CLOSE BUTTON
+========================================================= */
 
 const closeBtn = {
   position: "absolute",
@@ -374,8 +447,7 @@ const closeBtn = {
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
-  justifyContent: "center"
+  justifyContent: "center",
 };
-
 
 export default EmployeeLayout;

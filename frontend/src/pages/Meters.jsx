@@ -1,6 +1,32 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 
+import {
+  Gauge,
+  Plus,
+  Search,
+  Users,
+  MapPin,
+  Banknote,
+  UserRound,
+  Pencil,
+  Power,
+  PowerOff,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Save,
+  X,
+  UserPlus,
+  CircleGauge,
+  Activity,
+  AlertTriangle,
+  Droplets,
+  Settings2,
+  ListChecks,
+  LoaderCircle
+} from "lucide-react";
+
 export default function Meters() {
 
   const [meters, setMeters] = useState([]);
@@ -22,7 +48,9 @@ export default function Meters() {
     assignedEmployee: ""
   });
 
-  /* THEME */
+  /* =====================================================
+     THEME
+  ===================================================== */
 
   const [isDark, setIsDark] = useState(() => {
     return localStorage.getItem("theme") === "dark";
@@ -90,7 +118,9 @@ export default function Meters() {
   }, []);
 
 
-  /* LOAD DATA */
+  /* =====================================================
+     LOAD DATA
+  ===================================================== */
 
   const loadAll = async () => {
 
@@ -122,7 +152,9 @@ export default function Meters() {
   }, []);
 
 
-  /* MESSAGE */
+  /* =====================================================
+     MESSAGE
+  ===================================================== */
 
   const showMessage = (type, text) => {
 
@@ -135,7 +167,9 @@ export default function Meters() {
   };
 
 
-  /* CREATE */
+  /* =====================================================
+     CREATE
+  ===================================================== */
 
   const createMeter = async () => {
 
@@ -164,8 +198,9 @@ export default function Meters() {
       resetForm();
       loadAll();
 
-    } catch {
+    } catch (error) {
 
+      console.error(error);
       showMessage("error", "Failed to create meter");
 
     }
@@ -173,7 +208,9 @@ export default function Meters() {
   };
 
 
-  /* EDIT */
+  /* =====================================================
+     EDIT
+  ===================================================== */
 
   const openEdit = (meter) => {
 
@@ -194,6 +231,17 @@ export default function Meters() {
 
   const updateMeter = async () => {
 
+    if (!editingMeter) return;
+
+    if (
+      !form.meterNumber ||
+      !form.location ||
+      !form.pricePerUnit
+    ) {
+      showMessage("error", "Fill all fields");
+      return;
+    }
+
     try {
 
       await API.put(
@@ -210,12 +258,14 @@ export default function Meters() {
       showMessage("success", "Meter updated");
 
       setShowEdit(false);
+      setEditingMeter(null);
 
       resetForm();
       loadAll();
 
-    } catch {
+    } catch (error) {
 
+      console.error(error);
       showMessage("error", "Update failed");
 
     }
@@ -223,7 +273,9 @@ export default function Meters() {
   };
 
 
-  /* DELETE */
+  /* =====================================================
+     DELETE
+  ===================================================== */
 
   const deleteMeter = async (id) => {
 
@@ -237,8 +289,9 @@ export default function Meters() {
 
       loadAll();
 
-    } catch {
+    } catch (error) {
 
+      console.error(error);
       showMessage("error", "Delete failed");
 
     }
@@ -246,7 +299,9 @@ export default function Meters() {
   };
 
 
-  /* ASSIGN EMPLOYEE */
+  /* =====================================================
+     ASSIGN EMPLOYEE
+  ===================================================== */
 
   const assignEmployee = async (
     meterId,
@@ -270,7 +325,9 @@ export default function Meters() {
 
       loadAll();
 
-    } catch {
+    } catch (error) {
+
+      console.error(error);
 
       showMessage(
         "error",
@@ -282,7 +339,9 @@ export default function Meters() {
   };
 
 
-  /* TOGGLE */
+  /* =====================================================
+     TOGGLE
+  ===================================================== */
 
   const toggleMeter = async (m) => {
 
@@ -295,9 +354,18 @@ export default function Meters() {
         }
       );
 
+      showMessage(
+        "success",
+        m.isActive
+          ? "Meter deactivated"
+          : "Meter activated"
+      );
+
       loadAll();
 
-    } catch {
+    } catch (error) {
+
+      console.error(error);
 
       showMessage(
         "error",
@@ -309,7 +377,9 @@ export default function Meters() {
   };
 
 
-  /* RESET FORM */
+  /* =====================================================
+     RESET FORM
+  ===================================================== */
 
   const resetForm = () => {
 
@@ -323,17 +393,45 @@ export default function Meters() {
   };
 
 
-  /* FILTER */
+  /* =====================================================
+     CLOSE MODALS
+  ===================================================== */
+
+  const closeCreate = () => {
+
+    setShowCreate(false);
+    resetForm();
+
+  };
+
+
+  const closeEdit = () => {
+
+    setShowEdit(false);
+    setEditingMeter(null);
+    resetForm();
+
+  };
+
+
+  /* =====================================================
+     FILTER
+  ===================================================== */
 
   const filteredMeters = meters.filter((m) => {
 
+    const meterNumber =
+      String(m.meterNumber || "").toLowerCase();
+
+    const location =
+      String(m.location || "").toLowerCase();
+
+    const searchValue =
+      search.toLowerCase();
+
     const searchMatch =
-      m.meterNumber
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      m.location
-        .toLowerCase()
-        .includes(search.toLowerCase());
+      meterNumber.includes(searchValue) ||
+      location.includes(searchValue);
 
     const employeeMatch =
       !filterEmployee ||
@@ -345,7 +443,9 @@ export default function Meters() {
   });
 
 
-  /* STATS */
+  /* =====================================================
+     STATS
+  ===================================================== */
 
   const activeMeters =
     meters.filter(m => m.isActive).length;
@@ -354,18 +454,50 @@ export default function Meters() {
     meters.filter(m => !m.isActive).length;
 
 
+  /* =====================================================
+     LOADING
+  ===================================================== */
+
   if (loading) {
+
     return (
       <Center dark={isDark}>
-        Loading meters...
+        <LoaderCircle
+          size={28}
+          className="meter-loading-icon"
+        />
+
+        <span>
+          Loading meters...
+        </span>
+
+        <style>{`
+
+          .meter-loading-icon {
+            animation: meterSpin 1s linear infinite;
+          }
+
+          @keyframes meterSpin {
+            from {
+              transform: rotate(0deg);
+            }
+
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+        `}</style>
       </Center>
     );
+
   }
 
 
   return (
 
     <div
+      className="meters-page"
       style={{
         ...page,
         background: isDark
@@ -377,26 +509,63 @@ export default function Meters() {
       }}
     >
 
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
-      <div style={header}>
+      <div
+        className="meters-header"
+        style={header}
+      >
 
-        <div>
+        <div className="meters-title">
 
-          <h2
+          <div
             style={{
-              margin: 0,
-              color: isDark
-                ? "#f8fafc"
-                : "#111827"
+              display: "flex",
+              alignItems: "center",
+              gap: 10
             }}
           >
-            Water Meters
-          </h2>
+
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 12,
+                background: isDark
+                  ? "#1e3a8a"
+                  : "#dbeafe",
+                color: isDark
+                  ? "#bfdbfe"
+                  : "#1d4ed8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0
+              }}
+            >
+              <Gauge size={24} />
+            </div>
+
+            <h2
+              style={{
+                margin: 0,
+                color: isDark
+                  ? "#f8fafc"
+                  : "#111827"
+              }}
+            >
+              Water Meters
+            </h2>
+
+          </div>
+
 
           <p
             style={{
-              marginTop: 6,
+              marginTop: 8,
+              marginBottom: 0,
               color: isDark
                 ? "#cbd5e1"
                 : "#64748b"
@@ -409,117 +578,195 @@ export default function Meters() {
 
 
         <button
+          className="meters-primary-button"
           style={primaryBtn}
           onClick={() => setShowCreate(true)}
         >
-          + Add Meter
+          <Plus size={19} />
+          <span>Add Meter</span>
         </button>
 
       </div>
 
 
-      {/* STATS */}
+      {/* =================================================
+          STATS
+      ================================================= */}
 
-      <div style={statsGrid}>
+      <div
+        className="meters-stats-grid"
+        style={statsGrid}
+      >
 
-        <div style={cardBlue1}>
-
-          <h3>Total Meters</h3>
-
-          <h1>{meters.length}</h1>
-
-        </div>
-
-
-        <div style={cardBlue2}>
-
-          <h3>Active Meters</h3>
-
-          <h1>{activeMeters}</h1>
-
-        </div>
-
-
-        <div style={cardBlue3}>
-
-          <h3>Inactive Meters</h3>
-
-          <h1>{inactiveMeters}</h1>
-
-        </div>
-
-      </div>
-
-
-      {/* SEARCH */}
-
-      <div style={filters}>
-
-        <input
-          style={{
-            ...input,
-            background: isDark
-              ? "#334155"
-              : "#ffffff",
-            color: isDark
-              ? "#f8fafc"
-              : "#111827",
-            borderColor: isDark
-              ? "#475569"
-              : "#d1d5db"
-          }}
-          placeholder="Search meter or location"
-          value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-        />
-
-
-        <select
-          style={{
-            ...input,
-            background: isDark
-              ? "#334155"
-              : "#ffffff",
-            color: isDark
-              ? "#f8fafc"
-              : "#111827",
-            borderColor: isDark
-              ? "#475569"
-              : "#d1d5db"
-          }}
-          value={filterEmployee}
-          onChange={(e) =>
-            setFilterEmployee(e.target.value)
-          }
+        <div
+          className="meter-stat-card"
+          style={cardBlue1}
         >
 
-          <option value="">
-            All Employees
-          </option>
+          <div className="stat-icon">
+            <Gauge size={23} />
+          </div>
 
-          {employees.map(emp => (
+          <div>
 
-            <option
-              key={emp._id}
-              value={emp._id}
-            >
-              {emp.name}
-            </option>
+            <h3>
+              Total Meters
+            </h3>
 
-          ))}
+            <h1>
+              {meters.length}
+            </h1>
 
-        </select>
+          </div>
+
+        </div>
+
+
+        <div
+          className="meter-stat-card"
+          style={cardBlue2}
+        >
+
+          <div className="stat-icon">
+            <CheckCircle2 size={23} />
+          </div>
+
+          <div>
+
+            <h3>
+              Active Meters
+            </h3>
+
+            <h1>
+              {activeMeters}
+            </h1>
+
+          </div>
+
+        </div>
+
+
+        <div
+          className="meter-stat-card"
+          style={cardBlue3}
+        >
+
+          <div className="stat-icon">
+            <XCircle size={23} />
+          </div>
+
+          <div>
+
+            <h3>
+              Inactive Meters
+            </h3>
+
+            <h1>
+              {inactiveMeters}
+            </h1>
+
+          </div>
+
+        </div>
 
       </div>
 
 
-      {/* MESSAGE */}
+      {/* =================================================
+          SEARCH / FILTERS
+      ================================================= */}
+
+      <div
+        className="meters-filters"
+        style={filters}
+      >
+
+        <div className="filter-field">
+
+          <Search
+            size={18}
+            className="filter-icon"
+          />
+
+          <input
+            style={{
+              ...input,
+              background: isDark
+                ? "#334155"
+                : "#ffffff",
+              color: isDark
+                ? "#f8fafc"
+                : "#111827",
+              borderColor: isDark
+                ? "#475569"
+                : "#d1d5db"
+            }}
+            placeholder="Search meter or location"
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+          />
+
+        </div>
+
+
+        <div className="filter-field">
+
+          <Users
+            size={18}
+            className="filter-icon"
+          />
+
+          <select
+            style={{
+              ...input,
+              background: isDark
+                ? "#334155"
+                : "#ffffff",
+              color: isDark
+                ? "#f8fafc"
+                : "#111827",
+              borderColor: isDark
+                ? "#475569"
+                : "#d1d5db"
+            }}
+            value={filterEmployee}
+            onChange={(e) =>
+              setFilterEmployee(e.target.value)
+            }
+          >
+
+            <option value="">
+              All Employees
+            </option>
+
+            {employees.map(emp => (
+
+              <option
+                key={emp._id}
+                value={emp._id}
+              >
+                {emp.name}
+              </option>
+
+            ))}
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      {/* =================================================
+          MESSAGE
+      ================================================= */}
 
       {msg && (
 
         <div
+          className="meters-message"
           style={{
             ...msgBox,
             background:
@@ -541,15 +788,27 @@ export default function Meters() {
                   : "#166534"
           }}
         >
-          {msg.text}
+
+          {msg.type === "error"
+            ? <AlertTriangle size={18} />
+            : <CheckCircle2 size={18} />
+          }
+
+          <span>
+            {msg.text}
+          </span>
+
         </div>
 
       )}
 
 
-      {/* TABLE */}
+      {/* =================================================
+          DESKTOP TABLE
+      ================================================= */}
 
       <div
+        className="meters-desktop-table"
         style={{
           ...tableCard,
           background: isDark
@@ -570,27 +829,45 @@ export default function Meters() {
               <tr style={thead}>
 
                 <th style={th}>
-                  Meter
+                  <span className="table-heading">
+                    <Gauge size={16} />
+                    Meter
+                  </span>
                 </th>
 
                 <th style={th}>
-                  Location
+                  <span className="table-heading">
+                    <MapPin size={16} />
+                    Location
+                  </span>
                 </th>
 
                 <th style={th}>
-                  Price
+                  <span className="table-heading">
+                    <Banknote size={16} />
+                    Price
+                  </span>
                 </th>
 
                 <th style={th}>
-                  Employee
+                  <span className="table-heading">
+                    <Users size={16} />
+                    Employee
+                  </span>
                 </th>
 
                 <th style={th}>
-                  Status
+                  <span className="table-heading">
+                    <Activity size={16} />
+                    Status
+                  </span>
                 </th>
 
                 <th style={th}>
-                  Actions
+                  <span className="table-heading">
+                    <Settings2 size={16} />
+                    Actions
+                  </span>
                 </th>
 
               </tr>
@@ -633,7 +910,20 @@ export default function Meters() {
                           : "#f1f5f9"
                     }}
                   >
-                    {m.meterNumber}
+
+                    <div className="table-cell-with-icon">
+
+                      <Gauge
+                        size={17}
+                        className="cell-icon"
+                      />
+
+                      <strong>
+                        {m.meterNumber}
+                      </strong>
+
+                    </div>
+
                   </td>
 
 
@@ -649,7 +939,20 @@ export default function Meters() {
                           : "#f1f5f9"
                     }}
                   >
-                    {m.location}
+
+                    <div className="table-cell-with-icon">
+
+                      <MapPin
+                        size={17}
+                        className="cell-icon"
+                      />
+
+                      <span>
+                        {m.location}
+                      </span>
+
+                    </div>
+
                   </td>
 
 
@@ -665,7 +968,20 @@ export default function Meters() {
                           : "#f1f5f9"
                     }}
                   >
-                    R {m.pricePerUnit}
+
+                    <div className="table-cell-with-icon">
+
+                      <Banknote
+                        size={17}
+                        className="cell-icon"
+                      />
+
+                      <strong>
+                        R {m.pricePerUnit}
+                      </strong>
+
+                    </div>
+
                   </td>
 
 
@@ -679,51 +995,60 @@ export default function Meters() {
                     }}
                   >
 
-                    <select
-                      style={{
-                        ...input,
-                        width: 180,
-                        maxWidth: 180,
-                        background: isDark
-                          ? "#475569"
-                          : "#ffffff",
-                        color: isDark
-                          ? "#f8fafc"
-                          : "#111827",
-                        borderColor: isDark
-                          ? "#64748b"
-                          : "#d1d5db"
-                      }}
+                    <div className="employee-select-wrapper">
 
-                      value={
-                        m.assignedEmployee?._id ||
-                        ""
-                      }
+                      <Users
+                        size={17}
+                        className="employee-select-icon"
+                      />
 
-                      onChange={(e) =>
-                        assignEmployee(
-                          m._id,
-                          e.target.value
-                        )
-                      }
-                    >
+                      <select
+                        style={{
+                          ...input,
+                          width: 180,
+                          maxWidth: 180,
+                          background: isDark
+                            ? "#475569"
+                            : "#ffffff",
+                          color: isDark
+                            ? "#f8fafc"
+                            : "#111827",
+                          borderColor: isDark
+                            ? "#64748b"
+                            : "#d1d5db"
+                        }}
 
-                      <option value="">
-                        Unassigned
-                      </option>
+                        value={
+                          m.assignedEmployee?._id ||
+                          ""
+                        }
 
-                      {employees.map(emp => (
+                        onChange={(e) =>
+                          assignEmployee(
+                            m._id,
+                            e.target.value
+                          )
+                        }
+                      >
 
-                        <option
-                          key={emp._id}
-                          value={emp._id}
-                        >
-                          {emp.name}
+                        <option value="">
+                          Unassigned
                         </option>
 
-                      ))}
+                        {employees.map(emp => (
 
-                    </select>
+                          <option
+                            key={emp._id}
+                            value={emp._id}
+                          >
+                            {emp.name}
+                          </option>
+
+                        ))}
+
+                      </select>
+
+                    </div>
 
                   </td>
 
@@ -763,7 +1088,9 @@ export default function Meters() {
                         onClick={() =>
                           openEdit(m)
                         }
+                        title="Edit meter"
                       >
+                        <Pencil size={15} />
                         Edit
                       </button>
 
@@ -773,10 +1100,25 @@ export default function Meters() {
                         onClick={() =>
                           toggleMeter(m)
                         }
+                        title={
+                          m.isActive
+                            ? "Deactivate meter"
+                            : "Activate meter"
+                        }
                       >
-                        {m.isActive
-                          ? "Deactivate"
-                          : "Activate"}
+
+                        {m.isActive ? (
+                          <>
+                            <PowerOff size={15} />
+                            Deactivate
+                          </>
+                        ) : (
+                          <>
+                            <Power size={15} />
+                            Activate
+                          </>
+                        )}
+
                       </button>
 
 
@@ -785,7 +1127,9 @@ export default function Meters() {
                         onClick={() =>
                           deleteMeter(m._id)
                         }
+                        title="Delete meter"
                       >
+                        <Trash2 size={15} />
                         Delete
                       </button>
 
@@ -805,14 +1149,28 @@ export default function Meters() {
                   <td
                     colSpan="6"
                     style={{
-                      padding: 40,
+                      padding: 50,
                       textAlign: "center",
                       color: isDark
                         ? "#cbd5e1"
                         : "#64748b"
                     }}
                   >
-                    No meters found.
+
+                    <div className="empty-state">
+
+                      <CircleGauge size={42} />
+
+                      <strong>
+                        No meters found
+                      </strong>
+
+                      <span>
+                        Try changing your search or employee filter.
+                      </span>
+
+                    </div>
+
                   </td>
 
                 </tr>
@@ -828,13 +1186,311 @@ export default function Meters() {
       </div>
 
 
-      {/* CREATE MODAL */}
+      {/* =================================================
+          MOBILE METER CARDS
+      ================================================= */}
+
+      <div
+        className="meters-mobile-list"
+      >
+
+        {filteredMeters.map((m) => (
+
+          <div
+            key={m._id}
+            className="meter-mobile-card"
+            style={{
+              background: isDark
+                ? "#273449"
+                : "#ffffff",
+              color: isDark
+                ? "#f8fafc"
+                : "#111827",
+              boxShadow: isDark
+                ? "0 8px 25px rgba(0,0,0,.25)"
+                : "0 4px 12px rgba(0,0,0,.06)"
+            }}
+          >
+
+            {/* CARD HEADER */}
+
+            <div className="mobile-card-header">
+
+              <div>
+
+                <div className="mobile-meter-title">
+
+                  <Gauge size={19} />
+
+                  <strong>
+                    {m.meterNumber}
+                  </strong>
+
+                </div>
+
+                <div
+                  className="mobile-meter-location"
+                  style={{
+                    color: isDark
+                      ? "#cbd5e1"
+                      : "#64748b"
+                  }}
+                >
+
+                  <MapPin size={16} />
+
+                  <span>
+                    {m.location}
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <Status
+                active={m.isActive}
+                dark={isDark}
+              />
+
+            </div>
+
+
+            {/* DETAILS */}
+
+            <div className="mobile-meter-details">
+
+              <div
+                className="mobile-detail-item"
+                style={{
+                  background: isDark
+                    ? "#334155"
+                    : "#f8fafc"
+                }}
+              >
+
+                <Banknote size={18} />
+
+                <div>
+
+                  <span
+                    style={{
+                      color: isDark
+                        ? "#94a3b8"
+                        : "#64748b"
+                    }}
+                  >
+                    Price Per Unit
+                  </span>
+
+                  <strong>
+                    R {m.pricePerUnit}
+                  </strong>
+
+                </div>
+
+              </div>
+
+
+              <div
+                className="mobile-detail-item"
+                style={{
+                  background: isDark
+                    ? "#334155"
+                    : "#f8fafc"
+                }}
+              >
+
+                <UserRound size={18} />
+
+                <div>
+
+                  <span
+                    style={{
+                      color: isDark
+                        ? "#94a3b8"
+                        : "#64748b"
+                    }}
+                  >
+                    Assigned Employee
+                  </span>
+
+                  <strong>
+                    {m.assignedEmployee?.name ||
+                      "Unassigned"}
+                  </strong>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            {/* ASSIGN EMPLOYEE */}
+
+            <div className="mobile-assignment">
+
+              <label>
+                <UserPlus size={16} />
+                Assign Employee
+              </label>
+
+              <div className="mobile-select-wrapper">
+
+                <Users size={17} />
+
+                <select
+                  style={{
+                    ...input,
+                    maxWidth: "100%",
+                    width: "100%",
+                    background: isDark
+                      ? "#334155"
+                      : "#ffffff",
+                    color: isDark
+                      ? "#f8fafc"
+                      : "#111827",
+                    borderColor: isDark
+                      ? "#475569"
+                      : "#d1d5db"
+                  }}
+                  value={
+                    m.assignedEmployee?._id ||
+                    ""
+                  }
+                  onChange={(e) =>
+                    assignEmployee(
+                      m._id,
+                      e.target.value
+                    )
+                  }
+                >
+
+                  <option value="">
+                    Unassigned
+                  </option>
+
+                  {employees.map(emp => (
+
+                    <option
+                      key={emp._id}
+                      value={emp._id}
+                    >
+                      {emp.name}
+                    </option>
+
+                  ))}
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            {/* ACTIONS */}
+
+            <div className="mobile-meter-actions">
+
+              <button
+                style={smallBtn}
+                onClick={() =>
+                  openEdit(m)
+                }
+              >
+                <Pencil size={16} />
+                Edit
+              </button>
+
+
+              <button
+                style={smallBtn}
+                onClick={() =>
+                  toggleMeter(m)
+                }
+              >
+
+                {m.isActive ? (
+                  <>
+                    <PowerOff size={16} />
+                    Deactivate
+                  </>
+                ) : (
+                  <>
+                    <Power size={16} />
+                    Activate
+                  </>
+                )}
+
+              </button>
+
+
+              <button
+                style={dangerBtn}
+                onClick={() =>
+                  deleteMeter(m._id)
+                }
+              >
+                <Trash2 size={16} />
+                Delete
+              </button>
+
+            </div>
+
+          </div>
+
+        ))}
+
+
+        {filteredMeters.length === 0 && (
+
+          <div
+            className="mobile-empty-state"
+            style={{
+              background: isDark
+                ? "#273449"
+                : "#ffffff",
+              color: isDark
+                ? "#cbd5e1"
+                : "#64748b"
+              }}
+          >
+
+            <CircleGauge size={45} />
+
+            <strong>
+              No meters found
+            </strong>
+
+            <span>
+              Try changing your search or employee filter.
+            </span>
+
+          </div>
+
+        )}
+
+      </div>
+
+
+      {/* =================================================
+          CREATE MODAL
+      ================================================= */}
 
       {showCreate && (
 
-        <div style={overlay}>
+        <div
+          style={overlay}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              closeCreate();
+            }
+          }}
+        >
 
           <div
+            className="meter-modal"
             style={{
               ...modal,
               background: isDark
@@ -846,144 +1502,220 @@ export default function Meters() {
             }}
           >
 
-            <h2>
-              Add Water Meter
-            </h2>
+            <div className="modal-header">
+
+              <div>
+
+                <div className="modal-title">
+
+                  <div className="modal-title-icon">
+                    <Plus size={21} />
+                  </div>
+
+                  <h2>
+                    Add Water Meter
+                  </h2>
+
+                </div>
+
+                <p
+                  style={{
+                    color: isDark
+                      ? "#94a3b8"
+                      : "#64748b"
+                  }}
+                >
+                  Create a new water meter.
+                </p>
+
+              </div>
 
 
-            <input
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              placeholder="Meter Number"
-              value={form.meterNumber}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  meterNumber:
-                    e.target.value
-                })
-              }
-            />
+              <button
+                className="modal-close"
+                onClick={closeCreate}
+                style={{
+                  color: isDark
+                    ? "#cbd5e1"
+                    : "#475569"
+                }}
+                title="Close"
+              >
+                <X size={21} />
+              </button>
+
+            </div>
 
 
-            <input
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              placeholder="Location"
-              value={form.location}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  location:
-                    e.target.value
-                })
-              }
-            />
-
-
-            <input
-              type="number"
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              placeholder="Price Per Unit"
-              value={form.pricePerUnit}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  pricePerUnit:
-                    e.target.value
-                })
-              }
-            />
-
-
-            <select
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              value={form.assignedEmployee}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  assignedEmployee:
-                    e.target.value
-                })
-              }
+            <FormField
+              icon={<Gauge size={18} />}
+              label="Meter Number"
+              dark={isDark}
             >
 
-              <option value="">
-                Unassigned
-              </option>
+              <input
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                placeholder="Enter meter number"
+                value={form.meterNumber}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    meterNumber:
+                      e.target.value
+                  })
+                }
+              />
 
-              {employees.map(emp => (
+            </FormField>
 
-                <option
-                  key={emp._id}
-                  value={emp._id}
-                >
-                  {emp.name}
+
+            <FormField
+              icon={<MapPin size={18} />}
+              label="Location"
+              dark={isDark}
+            >
+
+              <input
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                placeholder="Enter meter location"
+                value={form.location}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    location:
+                      e.target.value
+                  })
+                }
+              />
+
+            </FormField>
+
+
+            <FormField
+              icon={<Banknote size={18} />}
+              label="Price Per Unit"
+              dark={isDark}
+            >
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                placeholder="Enter price per unit"
+                value={form.pricePerUnit}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    pricePerUnit:
+                      e.target.value
+                  })
+                }
+              />
+
+            </FormField>
+
+
+            <FormField
+              icon={<UserPlus size={18} />}
+              label="Assign Employee"
+              dark={isDark}
+            >
+
+              <select
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                value={form.assignedEmployee}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    assignedEmployee:
+                      e.target.value
+                  })
+                }
+              >
+
+                <option value="">
+                  Unassigned
                 </option>
 
-              ))}
+                {employees.map(emp => (
 
-            </select>
+                  <option
+                    key={emp._id}
+                    value={emp._id}
+                  >
+                    {emp.name}
+                  </option>
+
+                ))}
+
+              </select>
+
+            </FormField>
 
 
             <div style={modalActions}>
 
               <button
+                className="modal-action-primary"
                 style={primaryBtn}
                 onClick={createMeter}
               >
+                <Save size={18} />
                 Create Meter
               </button>
 
+
               <button
+                className="modal-action-secondary"
                 style={secondaryBtn}
-                onClick={() => {
-                  setShowCreate(false);
-                  resetForm();
-                }}
+                onClick={closeCreate}
               >
+                <X size={18} />
                 Cancel
               </button>
 
@@ -996,13 +1728,23 @@ export default function Meters() {
       )}
 
 
-      {/* EDIT MODAL */}
+      {/* =================================================
+          EDIT MODAL
+      ================================================= */}
 
       {showEdit && (
 
-        <div style={overlay}>
+        <div
+          style={overlay}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              closeEdit();
+            }
+          }}
+        >
 
           <div
+            className="meter-modal"
             style={{
               ...modal,
               background: isDark
@@ -1014,144 +1756,220 @@ export default function Meters() {
             }}
           >
 
-            <h2>
-              Edit Water Meter
-            </h2>
+            <div className="modal-header">
+
+              <div>
+
+                <div className="modal-title">
+
+                  <div className="modal-title-icon edit">
+                    <Pencil size={20} />
+                  </div>
+
+                  <h2>
+                    Edit Water Meter
+                  </h2>
+
+                </div>
+
+                <p
+                  style={{
+                    color: isDark
+                      ? "#94a3b8"
+                      : "#64748b"
+                  }}
+                >
+                  Update this water meter.
+                </p>
+
+              </div>
 
 
-            <input
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              placeholder="Meter Number"
-              value={form.meterNumber}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  meterNumber:
-                    e.target.value
-                })
-              }
-            />
+              <button
+                className="modal-close"
+                onClick={closeEdit}
+                style={{
+                  color: isDark
+                    ? "#cbd5e1"
+                    : "#475569"
+                }}
+                title="Close"
+              >
+                <X size={21} />
+              </button>
+
+            </div>
 
 
-            <input
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              placeholder="Location"
-              value={form.location}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  location:
-                    e.target.value
-                })
-              }
-            />
-
-
-            <input
-              type="number"
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              placeholder="Price Per Unit"
-              value={form.pricePerUnit}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  pricePerUnit:
-                    e.target.value
-                })
-              }
-            />
-
-
-            <select
-              style={{
-                ...modalInput,
-                background: isDark
-                  ? "#334155"
-                  : "#ffffff",
-                color: isDark
-                  ? "#f8fafc"
-                  : "#111827",
-                borderColor: isDark
-                  ? "#475569"
-                  : "#d1d5db"
-              }}
-              value={form.assignedEmployee}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  assignedEmployee:
-                    e.target.value
-                })
-              }
+            <FormField
+              icon={<Gauge size={18} />}
+              label="Meter Number"
+              dark={isDark}
             >
 
-              <option value="">
-                Unassigned
-              </option>
+              <input
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                placeholder="Enter meter number"
+                value={form.meterNumber}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    meterNumber:
+                      e.target.value
+                  })
+                }
+              />
 
-              {employees.map(emp => (
+            </FormField>
 
-                <option
-                  key={emp._id}
-                  value={emp._id}
-                >
-                  {emp.name}
+
+            <FormField
+              icon={<MapPin size={18} />}
+              label="Location"
+              dark={isDark}
+            >
+
+              <input
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                placeholder="Enter meter location"
+                value={form.location}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    location:
+                      e.target.value
+                  })
+                }
+              />
+
+            </FormField>
+
+
+            <FormField
+              icon={<Banknote size={18} />}
+              label="Price Per Unit"
+              dark={isDark}
+            >
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                placeholder="Enter price per unit"
+                value={form.pricePerUnit}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    pricePerUnit:
+                      e.target.value
+                  })
+                }
+              />
+
+            </FormField>
+
+
+            <FormField
+              icon={<UserPlus size={18} />}
+              label="Assign Employee"
+              dark={isDark}
+            >
+
+              <select
+                style={{
+                  ...modalInput,
+                  background: isDark
+                    ? "#334155"
+                    : "#ffffff",
+                  color: isDark
+                    ? "#f8fafc"
+                    : "#111827",
+                  borderColor: isDark
+                    ? "#475569"
+                    : "#d1d5db"
+                }}
+                value={form.assignedEmployee}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    assignedEmployee:
+                      e.target.value
+                  })
+                }
+              >
+
+                <option value="">
+                  Unassigned
                 </option>
 
-              ))}
+                {employees.map(emp => (
 
-            </select>
+                  <option
+                    key={emp._id}
+                    value={emp._id}
+                  >
+                    {emp.name}
+                  </option>
+
+                ))}
+
+              </select>
+
+            </FormField>
 
 
             <div style={modalActions}>
 
               <button
+                className="modal-action-primary"
                 style={primaryBtn}
                 onClick={updateMeter}
               >
+                <Save size={18} />
                 Save Changes
               </button>
 
+
               <button
+                className="modal-action-secondary"
                 style={secondaryBtn}
-                onClick={() => {
-                  setShowEdit(false);
-                  resetForm();
-                }}
+                onClick={closeEdit}
               >
+                <X size={18} />
                 Cancel
               </button>
 
@@ -1162,6 +1980,545 @@ export default function Meters() {
         </div>
 
       )}
+
+
+      {/* =================================================
+          RESPONSIVE CSS
+      ================================================= */}
+
+      <style>{`
+
+        * {
+          box-sizing: border-box;
+        }
+
+        .meters-page {
+          max-width: 100%;
+        }
+
+        .meters-header {
+          width: 100%;
+        }
+
+        .meters-title {
+          min-width: 0;
+        }
+
+        .meters-primary-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .meter-stat-card {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          min-height: 125px;
+        }
+
+        .meter-stat-card h3 {
+          margin: 0 0 5px;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .meter-stat-card h1 {
+          margin: 0;
+          font-size: 30px;
+        }
+
+        .stat-icon {
+          width: 48px;
+          height: 48px;
+          min-width: 48px;
+          border-radius: 12px;
+          background: rgba(255,255,255,.18);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .meters-filters {
+          width: 100%;
+        }
+
+        .filter-field {
+          position: relative;
+          width: min(100%, 310px);
+        }
+
+        .filter-field input,
+        .filter-field select {
+          padding-left: 42px !important;
+          max-width: none !important;
+        }
+
+        .filter-icon {
+          position: absolute;
+          left: 13px;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 2;
+          pointer-events: none;
+        }
+
+        .meters-message {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .table-heading {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+        }
+
+        .table-cell-with-icon {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .cell-icon {
+          flex-shrink: 0;
+          opacity: .75;
+        }
+
+        .employee-select-wrapper {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .employee-select-wrapper select {
+          padding-left: 38px !important;
+        }
+
+        .employee-select-icon {
+          position: absolute;
+          left: 11px;
+          z-index: 2;
+          pointer-events: none;
+        }
+
+        .actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .empty-state,
+        .mobile-empty-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+        }
+
+        .empty-state svg,
+        .mobile-empty-state svg {
+          opacity: .6;
+        }
+
+        .empty-state strong,
+        .mobile-empty-state strong {
+          font-size: 16px;
+        }
+
+        .empty-state span,
+        .mobile-empty-state span {
+          font-size: 14px;
+        }
+
+        .meters-mobile-list {
+          display: none;
+        }
+
+        .meter-mobile-card {
+          width: 100%;
+          border-radius: 14px;
+          padding: 17px;
+          margin-bottom: 14px;
+          overflow: hidden;
+        }
+
+        .mobile-card-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid rgba(148,163,184,.2);
+        }
+
+        .mobile-meter-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 16px;
+        }
+
+        .mobile-meter-location {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 7px;
+          font-size: 13px;
+          word-break: break-word;
+        }
+
+        .mobile-meter-details {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .mobile-detail-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 9px;
+          padding: 12px;
+          border-radius: 10px;
+          min-width: 0;
+        }
+
+        .mobile-detail-item svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .mobile-detail-item div {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+
+        .mobile-detail-item span {
+          font-size: 11px;
+        }
+
+        .mobile-detail-item strong {
+          font-size: 14px;
+          overflow-wrap: anywhere;
+        }
+
+        .mobile-assignment {
+          margin-top: 15px;
+        }
+
+        .mobile-assignment label {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-bottom: 7px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .mobile-select-wrapper {
+          position: relative;
+        }
+
+        .mobile-select-wrapper > svg {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 2;
+          pointer-events: none;
+        }
+
+        .mobile-select-wrapper select {
+          padding-left: 39px !important;
+          margin: 0 !important;
+        }
+
+        .mobile-meter-actions {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 15px;
+        }
+
+        .mobile-meter-actions button {
+          width: 100%;
+          min-width: 0 !important;
+          max-width: none !important;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding-left: 7px !important;
+          padding-right: 7px !important;
+        }
+
+        .meter-modal {
+          max-height: calc(100vh - 30px);
+          overflow-y: auto;
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 15px;
+          margin-bottom: 22px;
+        }
+
+        .modal-title {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .modal-title h2 {
+          margin: 0;
+          font-size: 21px;
+        }
+
+        .modal-header p {
+          margin: 7px 0 0 42px;
+          font-size: 13px;
+        }
+
+        .modal-title-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: #dbeafe;
+          color: #1d4ed8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .modal-title-icon.edit {
+          background: #e0e7ff;
+          color: #4338ca;
+        }
+
+        .modal-close {
+          width: 38px;
+          height: 38px;
+          border: none;
+          border-radius: 9px;
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        .modal-close:hover {
+          background: rgba(148,163,184,.15);
+        }
+
+        .form-field {
+          margin-bottom: 13px;
+        }
+
+        .form-field-label {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 6px;
+        }
+
+        .form-field-control {
+          width: 100%;
+        }
+
+        .form-field-control input,
+        .form-field-control select {
+          margin-bottom: 0 !important;
+        }
+
+        .modal-action-primary,
+        .modal-action-secondary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+        }
+
+        @media (max-width: 767px) {
+
+          .meters-page {
+            padding: 15px !important;
+          }
+
+          .meters-header {
+            align-items: stretch !important;
+            margin-bottom: 20px !important;
+          }
+
+          .meters-title h2 {
+            font-size: 21px;
+          }
+
+          .meters-title p {
+            font-size: 13px;
+            line-height: 1.45;
+          }
+
+          .meters-primary-button {
+            width: 100% !important;
+            max-width: none !important;
+          }
+
+          .meters-stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+            margin-bottom: 20px !important;
+          }
+
+          .meter-stat-card {
+            min-height: 100px;
+            padding: 16px !important;
+          }
+
+          .meter-stat-card h1 {
+            font-size: 27px;
+          }
+
+          .meters-filters {
+            display: flex !important;
+            flex-direction: column;
+            gap: 10px !important;
+            margin-bottom: 15px !important;
+          }
+
+          .filter-field {
+            width: 100%;
+          }
+
+          .meters-message {
+            margin-bottom: 13px !important;
+            font-size: 13px;
+            line-height: 1.4;
+          }
+
+          .meters-desktop-table {
+            display: none !important;
+          }
+
+          .meters-mobile-list {
+            display: block;
+          }
+
+          .mobile-card-header {
+            align-items: flex-start;
+          }
+
+          .mobile-meter-title {
+            font-size: 15px;
+          }
+
+          .mobile-meter-location {
+            max-width: 190px;
+          }
+
+          .mobile-meter-details {
+            grid-template-columns: 1fr;
+          }
+
+          .mobile-meter-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .meter-modal {
+            width: 100% !important;
+            max-width: none !important;
+            padding: 19px !important;
+            border-radius: 14px !important;
+          }
+
+          .modal-title h2 {
+            font-size: 18px;
+          }
+
+          .modal-header p {
+            margin-left: 0;
+            margin-top: 6px;
+          }
+
+          .modal-actions {
+            flex-direction: column;
+          }
+
+          .modal-action-primary,
+          .modal-action-secondary {
+            width: 100% !important;
+            max-width: none !important;
+          }
+
+        }
+
+        @media (min-width: 768px) and (max-width: 1100px) {
+
+          .meters-page {
+            padding: 24px !important;
+          }
+
+          .meters-stats-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          }
+
+          .meters-desktop-table {
+            overflow: hidden;
+          }
+
+          .table-scroll {
+            overflow-x: auto;
+          }
+
+        }
+
+        @media (max-width: 420px) {
+
+          .meters-page {
+            padding: 12px !important;
+          }
+
+          .meter-mobile-card {
+            padding: 14px;
+          }
+
+          .mobile-card-header {
+            gap: 8px;
+          }
+
+          .mobile-meter-location {
+            max-width: 160px;
+          }
+
+          .modal-title {
+            align-items: flex-start;
+          }
+
+          .modal-title-icon {
+            width: 33px;
+            height: 33px;
+          }
+
+          .modal-title h2 {
+            font-size: 17px;
+          }
+
+        }
+
+      `}</style>
 
     </div>
 
@@ -1170,15 +2527,63 @@ export default function Meters() {
 }
 
 
-/* COMPONENTS */
+/* =====================================================
+   FORM FIELD COMPONENT
+===================================================== */
+
+const FormField = ({
+  icon,
+  label,
+  dark,
+  children
+}) => (
+
+  <div className="form-field">
+
+    <label
+      className="form-field-label"
+      style={{
+        color: dark
+          ? "#e2e8f0"
+          : "#334155"
+      }}
+    >
+
+      {icon}
+
+      <span>
+        {label}
+      </span>
+
+    </label>
+
+    <div className="form-field-control">
+      {children}
+    </div>
+
+  </div>
+
+);
+
+
+/* =====================================================
+   STATUS COMPONENT
+===================================================== */
 
 const Status = ({ active, dark }) => (
 
   <span
     style={{
-      padding: "6px 14px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      padding: "6px 12px",
       borderRadius: 20,
       fontSize: 12,
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+
       background: active
         ? dark
           ? "#1e3a8a"
@@ -1196,20 +2601,33 @@ const Status = ({ active, dark }) => (
           : "#374151"
     }}
   >
+
+    {active ? (
+      <CheckCircle2 size={14} />
+    ) : (
+      <XCircle size={14} />
+    )}
+
     {active ? "Active" : "Inactive"}
+
   </span>
 
 );
 
+
+/* =====================================================
+   CENTER COMPONENT
+===================================================== */
 
 const Center = ({ children, dark }) => (
 
   <div
     style={{
       display: "flex",
-      height: "60vh",
+      minHeight: "60vh",
       alignItems: "center",
       justifyContent: "center",
+      gap: 10,
       background: dark
         ? "#1e293b"
         : "#f1f5f9",
@@ -1224,7 +2642,9 @@ const Center = ({ children, dark }) => (
 );
 
 
-/* STYLES */
+/* =====================================================
+   BASE STYLES
+===================================================== */
 
 const page = {
   padding: "clamp(15px,4vw,40px)",
@@ -1316,7 +2736,8 @@ const rowAlt = {
 const actions = {
   display: "flex",
   gap: 8,
-  alignItems: "center"
+  alignItems: "center",
+  flexWrap: "wrap"
 };
 
 
@@ -1334,14 +2755,19 @@ const primaryBtn = {
 
 
 const smallBtn = {
-  padding: "8px 14px",
+  padding: "8px 12px",
   background: "#e2e8f0",
   border: "none",
   borderRadius: 8,
   cursor: "pointer",
   minWidth: 90,
   height: 38,
-  fontWeight: 600
+  fontWeight: 600,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  whiteSpace: "nowrap"
 };
 
 
@@ -1359,7 +2785,7 @@ const secondaryBtn = {
 
 
 const dangerBtn = {
-  padding: "8px 14px",
+  padding: "8px 12px",
   background: "#dc2626",
   color: "#fff",
   border: "none",
@@ -1367,7 +2793,12 @@ const dangerBtn = {
   cursor: "pointer",
   minWidth: 90,
   height: 38,
-  fontWeight: 600
+  fontWeight: 600,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  whiteSpace: "nowrap"
 };
 
 
@@ -1377,7 +2808,8 @@ const input = {
   border: "1px solid #ddd",
   width: "100%",
   maxWidth: 250,
-  boxSizing: "border-box"
+  boxSizing: "border-box",
+  outline: "none"
 };
 
 
@@ -1421,13 +2853,15 @@ const cardBlue3 = {
 
 
 const msgBox = {
-  padding: 10,
-  borderRadius: 6,
+  padding: 11,
+  borderRadius: 8,
   marginBottom: 15
 };
 
 
-/* MODALS */
+/* =====================================================
+   MODALS
+===================================================== */
 
 const overlay = {
   position: "fixed",
@@ -1459,4 +2893,3 @@ const modalActions = {
   gap: 10,
   marginTop: 10
 };
-

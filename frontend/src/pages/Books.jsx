@@ -21,6 +21,12 @@ import {
   CircleCheck,
   CircleAlert,
   Plus,
+  Phone,
+  MapPin,
+  Truck,
+  RefreshCw,
+  CalendarDays,
+  Percent,
   ClipboardList,
 } from "lucide-react";
 import jsPDF from "jspdf";
@@ -38,6 +44,7 @@ export default function Books() {
   const [filtered, setFiltered] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
 
   const [documentType, setDocumentType] = useState("quotation");
@@ -133,9 +140,13 @@ export default function Books() {
      LOAD BOOKS
   ===================================================== */
 
-  const loadBooks = async () => {
+  const loadBooks = async (showRefresh = false) => {
     try {
-      setLoading(true);
+      if (showRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
       const res = await fetch(`${API}/books`);
 
@@ -159,6 +170,7 @@ export default function Books() {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -179,11 +191,27 @@ export default function Books() {
     let data = [...books];
 
     if (search.trim()) {
-      const searchValue = search.toLowerCase();
+      const searchValue = search.toLowerCase().trim();
 
-      data = data.filter((book) =>
-        (book.customer || "").toLowerCase().includes(searchValue)
-      );
+      data = data.filter((book) => {
+        return (
+          String(book.customer || "")
+            .toLowerCase()
+            .includes(searchValue) ||
+          String(book.documentNumber || "")
+            .toLowerCase()
+            .includes(searchValue) ||
+          String(book.phone || "")
+            .toLowerCase()
+            .includes(searchValue) ||
+          String(book.type || "")
+            .toLowerCase()
+            .includes(searchValue) ||
+          String(book.status || "")
+            .toLowerCase()
+            .includes(searchValue)
+        );
+      });
     }
 
     setFiltered(data);
@@ -264,11 +292,14 @@ export default function Books() {
     );
   }, [lineItems]);
 
+  const vatPercent = Math.max(0, Number(vat || 0));
+  const discountPercent = Math.max(0, Number(discount || 0));
+
   const vatAmount =
-    subtotal * (Number(vat || 0) / 100);
+    subtotal * (vatPercent / 100);
 
   const discountAmount =
-    subtotal * (Number(discount || 0) / 100);
+    subtotal * (discountPercent / 100);
 
   const grandTotal =
     subtotal + vatAmount - discountAmount;
@@ -332,8 +363,8 @@ export default function Books() {
                 product: item.product,
                 quantity: item.quantity,
               })),
-              vat: Number(vat || 0),
-              discount: Number(discount || 0),
+              vat: vatPercent,
+              discount: discountPercent,
               notes,
             }),
           });
@@ -460,8 +491,6 @@ export default function Books() {
   const downloadPDF = (book) => {
     const doc = new jsPDF();
 
-    /* HEADER */
-
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, 220, 35, "F");
 
@@ -486,8 +515,6 @@ export default function Books() {
     );
 
     doc.setTextColor(0, 0, 0);
-
-    /* CUSTOMER INFO */
 
     doc.setFontSize(13);
 
@@ -522,8 +549,6 @@ export default function Books() {
       14,
       84
     );
-
-    /* TABLE */
 
     autoTable(doc, {
       startY: 95,
@@ -581,7 +606,10 @@ export default function Books() {
     );
 
     doc.text(
-      `Discount (${book.discount || 0}%):`,
+      `Discount (${book.discount || 0}%): R ${(
+        Number(book.subtotal || 0) *
+        (Number(book.discount || 0) / 100)
+      ).toFixed(2)}`,
       110,
       finalY
     );
@@ -657,18 +685,52 @@ export default function Books() {
       0
     );
 
+  const paidDocuments =
+    books.filter(
+      (book) => book.status === "paid"
+    ).length;
+
+  const unpaidDocuments =
+    books.filter(
+      (book) => book.status !== "paid"
+    ).length;
+
+  /* =====================================================
+     HELPERS
+  ===================================================== */
+
+  const getTypeIcon = (type) => {
+    if (type === "invoice") {
+      return <Receipt size={15} />;
+    }
+
+    return <FileText size={15} />;
+  };
+
+  const getStatusIcon = (status) => {
+    if (status === "paid") {
+      return <CircleCheck size={15} />;
+    }
+
+    return <CircleAlert size={15} />;
+  };
+
   /* =====================================================
      LOADING
   ===================================================== */
 
   if (loading) {
     return (
-      <div style={center}>
-        <div style={loadingBox}>
-          <div style={loadingSpinner}></div>
-          <span>Loading Books...</span>
+      <>
+        <style>{responsiveStyles}</style>
+
+        <div style={center}>
+          <div style={loadingBox}>
+            <div style={loadingSpinner}></div>
+            <span>Loading Books...</span>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -677,369 +739,1025 @@ export default function Books() {
   ===================================================== */
 
   return (
-    <div style={page}>
+    <>
+      <style>{responsiveStyles}</style>
 
-      {/* =================================================
-          PAGE HEADER
-      ================================================= */}
+      <div
+        style={page}
+        className="books-page"
+      >
 
-      <div style={pageHeader}>
-        <div style={pageHeaderIcon}>
-          <BookOpen size={28} strokeWidth={2.2} />
-        </div>
+        {/* =================================================
+            PAGE HEADER
+        ================================================= */}
 
-        <div>
-          <h1 style={title}>
-            Books & Billing
-          </h1>
+        <div
+          style={pageHeader}
+          className="books-header"
+        >
 
-          <p style={subtitle}>
-            Create quotations, invoices and manage customer documents.
-          </p>
-        </div>
-      </div>
-
-      {/* =================================================
-          SUMMARY
-      ================================================= */}
-
-      <div style={summaryGrid}>
-
-        <div style={summaryCard}>
-         <div style={summaryIcon}>
-  <FileText size={20} strokeWidth={2.2} />
-</div>
-
-          <div style={summaryLabel}>
-            Quotations
+          <div
+            style={pageHeaderIcon}
+            className="books-header-icon"
+          >
+            <BookOpen size={28} strokeWidth={2.2} />
           </div>
 
-          <div style={summaryNumber}>
-            {totalQuotations}
-          </div>
+          <div style={pageHeaderText}>
 
-          <div style={summaryDescription}>
-            Total quotations
-          </div>
-        </div>
+            <div
+              style={headerTopRow}
+              className="books-header-top"
+            >
 
-        <div style={summaryCard}>
-         <div style={summaryIcon}>
-          <Receipt size={20} strokeWidth={2.2} />
-          </div>
+              <div>
+                <h1
+                  style={title}
+                  className="books-title"
+                >
+                  Books & Billing
+                </h1>
 
-          <div style={summaryLabel}>
-            Invoices
-          </div>
+                <p
+                  style={subtitle}
+                  className="books-subtitle"
+                >
+                  Create quotations, invoices and manage customer documents.
+                </p>
+              </div>
 
-          <div style={summaryNumber}>
-            {totalInvoices}
-          </div>
-
-          <div style={summaryDescription}>
-            Total invoices
-          </div>
-        </div>
-
-        <div style={summaryCard}>
-          <div style={summaryIcon}>
-            <DollarSign size={20} strokeWidth={2.2} />
-          </div>
-
-          <div style={summaryLabel}>
-            Revenue
-          </div>
-
-          <div style={summaryNumber}>
-            {currency(totalRevenue)}
-          </div>
-
-          <div style={summaryDescription}>
-            Total document value
-          </div>
-        </div>
-
-        <div style={summaryCard}>
-          <div style={summaryIcon}>
-            <AlertTriangle size={20} strokeWidth={2.2} />
-          </div>
-
-          <div style={summaryLabel}>
-            Outstanding
-          </div>
-
-          <div style={summaryNumber}>
-            {currency(outstanding)}
-          </div>
-
-          <div style={summaryDescription}>
-            Outstanding balance
-          </div>
-        </div>
-
-      </div>
-
-      {/* =================================================
-          SEARCH
-      ================================================= */}
-
-      <div style={searchCard}>
-
-        <div style={searchHeader}>
-          <Search size={25} strokeWidth={2.2} />
-          <div>
-            <h2 style={searchTitle}>
-              Search Documents
-            </h2>
-
-            <p style={searchDescription}>
-              Search your documents by customer name.
-            </p>
-          </div>
-        </div>
-
-        <input
-          style={searchInput}
-          placeholder="Search customer..."
-          value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-        />
-
-      </div>
-
-      {/* =================================================
-          CREATE DOCUMENT
-      ================================================= */}
-
-      <div style={card}>
-
-       <h2 style={sectionTitle}>
-          <span style={titleIcon}>
-            <FilePlus size={21} />
-          </span>
-          Create Quotation / Invoice
-        </h2>
-
-        <p style={sectionDescription}>
-          Enter customer details and add the products you want to include.
-        </p>
-
-        {/* CUSTOMER DETAILS */}
-
-        <div style={subSection}>
-         <h3 style={miniTitle}>
-            <span style={miniTitleIcon}>
-              <User size={18} />
-            </span>
-            Customer Details
-          </h3>
-
-          <div style={formGrid}>
-
-            <div style={field}>
-              <label style={label}>
-                Document Type
-              </label>
-
-              <select
-                style={input}
-                value={documentType}
-                onChange={(e) =>
-                  setDocumentType(
-                    e.target.value
-                  )
-                }
-              >
-                <option value="quotation">
-                  Quotation
-                </option>
-
-                <option value="invoice">
-                  Invoice
-                </option>
-              </select>
-            </div>
-
-            <div style={field}>
-              <label style={label}>
-                Customer Name
-              </label>
-
-              <input
-                style={input}
-                placeholder="Customer Name"
-                value={customer}
-                onChange={(e) =>
-                  setCustomer(
-                    e.target.value
-                  )
-                }
-              />
-            </div>
-
-            <div style={field}>
-              <label style={label}>
-                Phone
-              </label>
-
-              <input
-                style={input}
-                placeholder="Phone number"
-                value={phone}
-                onChange={(e) =>
-                  setPhone(
-                    e.target.value
-                  )
-                }
-              />
-            </div>
-
-            <div style={field}>
-              <label style={label}>
-                Address
-              </label>
-
-              <input
-                style={input}
-                placeholder="Customer address"
-                value={address}
-                onChange={(e) =>
-                  setAddress(
-                    e.target.value
-                  )
-                }
-              />
-            </div>
-
-            <div style={field}>
-              <label style={label}>
-                Delivery Address
-              </label>
-
-              <input
-                style={input}
-                placeholder="Delivery address"
-                value={deliveryAddress}
-                onChange={(e) =>
-                  setDeliveryAddress(
-                    e.target.value
-                  )
-                }
-              />
-            </div>
-
-          </div>
-        </div>
-
-        {/* ADD PRODUCTS */}
-
-        <div style={subSection}>
-          <h3 style={miniTitle}>
-            <span style={miniTitleIcon}>
-              <ShoppingCart size={18} />
-            </span>
-            Add Products
-          </h3>
-
-          <div style={productGrid}>
-
-            <div style={field}>
-              <label style={label}>
-                Product
-              </label>
-
-              <select
-                style={input}
-                value={selectedProduct}
-                onChange={(e) =>
-                  setSelectedProduct(
-                    e.target.value
-                  )
-                }
-              >
-                <option value="">
-                  Select Product
-                </option>
-
-                {products.map((product) => (
-                  <option
-                    key={product._id}
-                    value={product._id}
-                  >
-                    {product.name}
-                    {product.size
-                      ? ` - ${product.size}`
-                      : ""}
-                    {" - "}
-                    {currency(product.price)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={field}>
-              <label style={label}>
-                Quantity
-              </label>
-
-              <input
-                style={input}
-                type="number"
-                min="1"
-                placeholder="Quantity"
-                value={quantity}
-                onChange={(e) =>
-                  setQuantity(
-                    e.target.value
-                  )
-                }
-              />
-            </div>
-
-            <div style={buttonField}>
               <button
-                style={addBtn}
-                onClick={addLineItem}
+                type="button"
+                style={refreshBtn}
+                className="books-refresh"
+                onClick={() => loadBooks(true)}
+                disabled={refreshing}
               >
-                <Plus size={17} />
-                Add Item
+                <RefreshCw
+                  size={16}
+                  style={
+                    refreshing
+                      ? {
+                          animation:
+                            "spin 1s linear infinite",
+                        }
+                      : undefined
+                  }
+                />
+
+                <span>
+                  {refreshing
+                    ? "Refreshing..."
+                    : "Refresh"}
+                </span>
               </button>
+
             </div>
 
           </div>
+
         </div>
 
         {/* =================================================
-            CURRENT ITEMS
+            SUMMARY
         ================================================= */}
 
-        {lineItems.length > 0 && (
-          <div style={itemsSection}>
+        <div
+          style={summaryGrid}
+          className="books-summary-grid"
+        >
+
+          <SummaryCard
+            icon={
+              <FileText
+                size={20}
+                strokeWidth={2.2}
+              />
+            }
+            label="Quotations"
+            number={totalQuotations}
+            description="Total quotations"
+          />
+
+          <SummaryCard
+            icon={
+              <Receipt
+                size={20}
+                strokeWidth={2.2}
+              />
+            }
+            label="Invoices"
+            number={totalInvoices}
+            description="Total invoices"
+          />
+
+          <SummaryCard
+            icon={
+              <DollarSign
+                size={20}
+                strokeWidth={2.2}
+              />
+            }
+            label="Revenue"
+            number={currency(totalRevenue)}
+            description="Total document value"
+          />
+
+          <SummaryCard
+            icon={
+              <AlertTriangle
+                size={20}
+                strokeWidth={2.2}
+              />
+            }
+            label="Outstanding"
+            number={currency(outstanding)}
+            description="Outstanding balance"
+          />
+
+        </div>
+
+        {/* =================================================
+            STATUS OVERVIEW
+        ================================================= */}
+
+        <div
+          style={statusOverview}
+          className="books-status-overview"
+        >
+
+          <div style={statusOverviewItem}>
+
+            <div style={statusOverviewIcon}>
+              <CircleCheck size={18} />
+            </div>
+
+            <div>
+              <div style={statusOverviewNumber}>
+                {paidDocuments}
+              </div>
+
+              <div style={statusOverviewLabel}>
+                Paid Documents
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            style={statusOverviewDivider}
+            className="books-status-divider"
+          />
+
+          <div style={statusOverviewItem}>
+
+            <div style={statusOverviewIconUnpaid}>
+              <CircleAlert size={18} />
+            </div>
+
+            <div>
+              <div style={statusOverviewNumber}>
+                {unpaidDocuments}
+              </div>
+
+              <div style={statusOverviewLabel}>
+                Unpaid Documents
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            style={statusOverviewDivider}
+            className="books-status-divider"
+          />
+
+          <div style={statusOverviewItem}>
+
+            <div style={statusOverviewIcon}>
+              <ClipboardList size={18} />
+            </div>
+
+            <div>
+              <div style={statusOverviewNumber}>
+                {books.length}
+              </div>
+
+              <div style={statusOverviewLabel}>
+                All Documents
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* =================================================
+            SEARCH
+        ================================================= */}
+
+        <div
+          style={searchCard}
+          className="books-search-card"
+        >
+
+          <div style={searchHeader}>
+
+            <div style={searchHeaderIcon}>
+              <Search
+                size={21}
+                strokeWidth={2.2}
+              />
+            </div>
+
+            <div style={searchHeaderText}>
+
+              <h2 style={searchTitle}>
+                Search Documents
+              </h2>
+
+              <p style={searchDescription}>
+                Search by customer, document number,
+                phone, type or status.
+              </p>
+
+            </div>
+
+          </div>
+
+          <div style={searchInputWrapper}>
+
+            <Search
+              size={18}
+              style={searchInputIcon}
+            />
+
+            <input
+              style={searchInput}
+              placeholder="Search customer, document number..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+            />
+
+            {search && (
+              <button
+                type="button"
+                style={clearSearchBtn}
+                onClick={() => setSearch("")}
+              >
+                <X size={17} />
+              </button>
+            )}
+
+          </div>
+
+          <div style={searchResultText}>
+            {filtered.length} document
+            {filtered.length === 1
+              ? ""
+              : "s"}{" "}
+            found
+          </div>
+
+        </div>
+
+        {/* =================================================
+            CREATE DOCUMENT
+        ================================================= */}
+
+        <div
+          style={card}
+          className="books-card"
+        >
+
+          <div style={sectionHeader}>
+
+            <div style={sectionHeaderIcon}>
+              <FilePlus size={21} />
+            </div>
+
+            <div>
+
+              <h2
+                style={sectionTitle}
+                className="books-section-title"
+              >
+                Create Quotation / Invoice
+              </h2>
+
+              <p
+                style={sectionDescription}
+                className="books-section-description"
+              >
+                Enter customer details and add the
+                products you want to include.
+              </p>
+
+            </div>
+
+          </div>
+
+          {/* CUSTOMER DETAILS */}
+
+          <div style={subSection}>
 
             <h3 style={miniTitle}>
               <span style={miniTitleIcon}>
-                <Package size={18} />
+                <User size={18} />
               </span>
-              Selected Products
+
+              Customer Details
             </h3>
 
+            <div
+              style={formGrid}
+              className="books-form-grid"
+            >
+
+              <div style={field}>
+
+                <label style={label}>
+                  <FileText size={14} />
+                  Document Type
+                </label>
+
+                <select
+                  style={input}
+                  value={documentType}
+                  onChange={(e) =>
+                    setDocumentType(e.target.value)
+                  }
+                >
+                  <option value="quotation">
+                    Quotation
+                  </option>
+
+                  <option value="invoice">
+                    Invoice
+                  </option>
+                </select>
+
+              </div>
+
+              <div style={field}>
+
+                <label style={label}>
+                  <User size={14} />
+                  Customer Name
+                </label>
+
+                <input
+                  style={input}
+                  placeholder="Customer Name"
+                  value={customer}
+                  onChange={(e) =>
+                    setCustomer(e.target.value)
+                  }
+                />
+
+              </div>
+
+              <div style={field}>
+
+                <label style={label}>
+                  <Phone size={14} />
+                  Phone
+                </label>
+
+                <input
+                  style={input}
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(e.target.value)
+                  }
+                />
+
+              </div>
+
+              <div style={field}>
+
+                <label style={label}>
+                  <MapPin size={14} />
+                  Address
+                </label>
+
+                <input
+                  style={input}
+                  placeholder="Customer address"
+                  value={address}
+                  onChange={(e) =>
+                    setAddress(e.target.value)
+                  }
+                />
+
+              </div>
+
+              <div style={field}>
+
+                <label style={label}>
+                  <Truck size={14} />
+                  Delivery Address
+                </label>
+
+                <input
+                  style={input}
+                  placeholder="Delivery address"
+                  value={deliveryAddress}
+                  onChange={(e) =>
+                    setDeliveryAddress(e.target.value)
+                  }
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* ADD PRODUCTS */}
+
+          <div style={subSection}>
+
+            <h3 style={miniTitle}>
+              <span style={miniTitleIcon}>
+                <ShoppingCart size={18} />
+              </span>
+
+              Add Products
+            </h3>
+
+            <div
+              style={productGrid}
+              className="books-product-grid"
+            >
+
+              <div style={field}>
+
+                <label style={label}>
+                  <Package size={14} />
+                  Product
+                </label>
+
+                <select
+                  style={input}
+                  value={selectedProduct}
+                  onChange={(e) =>
+                    setSelectedProduct(e.target.value)
+                  }
+                >
+                  <option value="">
+                    Select Product
+                  </option>
+
+                  {products.map((product) => (
+                    <option
+                      key={product._id}
+                      value={product._id}
+                    >
+                      {product.name}
+                      {product.size
+                        ? ` - ${product.size}`
+                        : ""}
+                      {" - "}
+                      {currency(product.price)}
+                    </option>
+                  ))}
+
+                </select>
+
+              </div>
+
+              <div style={field}>
+
+                <label style={label}>
+                  <ShoppingCart size={14} />
+                  Quantity
+                </label>
+
+                <input
+                  style={input}
+                  type="number"
+                  min="1"
+                  placeholder="Quantity"
+                  value={quantity}
+                  onChange={(e) =>
+                    setQuantity(e.target.value)
+                  }
+                />
+
+              </div>
+
+              <div style={buttonField}>
+
+                <button
+                  type="button"
+                  style={addBtn}
+                  className="books-add-button"
+                  onClick={addLineItem}
+                >
+                  <Plus size={17} />
+                  <span>Add Item</span>
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* =================================================
+              CURRENT ITEMS
+          ================================================= */}
+
+          {lineItems.length > 0 && (
+            <div style={itemsSection}>
+
+              <div style={itemsHeader}>
+
+                <h3 style={miniTitle}>
+                  <span style={miniTitleIcon}>
+                    <Package size={18} />
+                  </span>
+
+                  Selected Products
+                </h3>
+
+                <span style={itemCountBadge}>
+                  {lineItems.length} item
+                  {lineItems.length === 1
+                    ? ""
+                    : "s"}
+                </span>
+
+              </div>
+
+              {/* DESKTOP TABLE */}
+
+              <div className="desktopOnly">
+
+                <div style={tableWrapper}>
+
+                  <table style={table}>
+
+                    <thead style={thead}>
+
+                      <tr>
+
+                        <th style={th}>
+                          Product
+                        </th>
+
+                        <th style={th}>
+                          Qty
+                        </th>
+
+                        <th style={th}>
+                          Price
+                        </th>
+
+                        <th style={th}>
+                          Total
+                        </th>
+
+                        <th style={th}>
+                          Action
+                        </th>
+
+                      </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                      {lineItems.map(
+                        (item, index) => (
+                          <tr
+                            key={index}
+                            style={tableRow}
+                          >
+
+                            <td style={td}>
+
+                              <div
+                                style={productNameRow}
+                              >
+
+                                <div
+                                  style={productTableIcon}
+                                >
+                                  <Package size={15} />
+                                </div>
+
+                                <div>
+
+                                  <strong>
+                                    {item.name}
+                                  </strong>
+
+                                  {item.size && (
+                                    <div
+                                      style={itemSize}
+                                    >
+                                      {item.size}
+                                    </div>
+                                  )}
+
+                                </div>
+
+                              </div>
+
+                            </td>
+
+                            <td style={td}>
+
+                              <span
+                                style={quantityBadge}
+                              >
+                                {item.quantity}
+                              </span>
+
+                            </td>
+
+                            <td style={td}>
+                              {currency(item.price)}
+                            </td>
+
+                            <td style={td}>
+                              <strong>
+                                {currency(item.total)}
+                              </strong>
+                            </td>
+
+                            <td style={td}>
+
+                              <button
+                                type="button"
+                                style={removeItemBtn}
+                                onClick={() =>
+                                  removeItem(index)
+                                }
+                              >
+                                <Trash2 size={15} />
+                                Remove
+                              </button>
+
+                            </td>
+
+                          </tr>
+                        )
+                      )}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              </div>
+
+              {/* MOBILE CARDS */}
+
+              <div className="mobileOnly">
+
+                {lineItems.map(
+                  (item, index) => (
+                    <div
+                      key={index}
+                      style={mobileItemCard}
+                    >
+
+                      <div
+                        style={mobileItemTop}
+                      >
+
+                        <div
+                          style={mobileItemProduct}
+                        >
+
+                          <div
+                            style={mobileProductIcon}
+                          >
+                            <Package size={17} />
+                          </div>
+
+                          <div
+                            style={{
+                              minWidth: 0,
+                            }}
+                          >
+
+                            <strong
+                              style={mobileProductName}
+                            >
+                              {item.name}
+                            </strong>
+
+                            {item.size && (
+                              <div
+                                style={itemSize}
+                              >
+                                {item.size}
+                              </div>
+                            )}
+
+                          </div>
+
+                        </div>
+
+                        <button
+                          type="button"
+                          style={mobileRemoveBtn}
+                          onClick={() =>
+                            removeItem(index)
+                          }
+                          aria-label="Remove item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+
+                      </div>
+
+                      <div
+                        style={mobileItemDetails}
+                        className="books-mobile-item-details"
+                      >
+
+                        <div style={mobileDetail}>
+
+                          <span
+                            style={mobileDetailLabel}
+                          >
+                            Quantity
+                          </span>
+
+                          <strong>
+                            {item.quantity}
+                          </strong>
+
+                        </div>
+
+                        <div style={mobileDetail}>
+
+                          <span
+                            style={mobileDetailLabel}
+                          >
+                            Price
+                          </span>
+
+                          <strong>
+                            {currency(item.price)}
+                          </strong>
+
+                        </div>
+
+                        <div style={mobileDetail}>
+
+                          <span
+                            style={mobileDetailLabel}
+                          >
+                            Total
+                          </span>
+
+                          <strong>
+                            {currency(item.total)}
+                          </strong>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+
+            </div>
+          )}
+
+          {/* =================================================
+              BILLING DETAILS
+          ================================================= */}
+
+          <div style={totalsCard}>
+
+            <h3 style={billingTitle}>
+
+              <span style={billingIcon}>
+                <CreditCard size={19} />
+              </span>
+
+              Billing Details
+
+            </h3>
+
+            <div
+              style={billingGrid}
+              className="books-billing-grid"
+            >
+
+              <div style={field}>
+
+                <label style={billingLabel}>
+                  <Percent size={14} />
+                  VAT %
+                </label>
+
+                <input
+                  style={billingInput}
+                  type="number"
+                  min="0"
+                  value={vat}
+                  onChange={(e) =>
+                    setVat(e.target.value)
+                  }
+                />
+
+              </div>
+
+              <div style={field}>
+
+                <label style={billingLabel}>
+                  <Percent size={14} />
+                  Discount %
+                </label>
+
+                <input
+                  style={billingInput}
+                  type="number"
+                  min="0"
+                  value={discount}
+                  onChange={(e) =>
+                    setDiscount(e.target.value)
+                  }
+                />
+
+              </div>
+
+            </div>
+
+            <div style={field}>
+
+              <label style={billingLabel}>
+                <FileText size={14} />
+                Notes
+              </label>
+
+              <textarea
+                style={billingTextarea}
+                placeholder="Add any notes for this document..."
+                value={notes}
+                onChange={(e) =>
+                  setNotes(e.target.value)
+                }
+              />
+
+            </div>
+
+            {/* TOTALS */}
+
+            <div style={totalsBox}>
+
+              <div style={totalLine}>
+
+                <span>
+                  Subtotal
+                </span>
+
+                <strong>
+                  {currency(subtotal)}
+                </strong>
+
+              </div>
+
+              <div style={totalLine}>
+
+                <span>
+                  VAT
+                </span>
+
+                <strong>
+                  {currency(vatAmount)}
+                </strong>
+
+              </div>
+
+              <div style={totalLine}>
+
+                <span>
+                  Discount
+                </span>
+
+                <strong>
+                  - {currency(discountAmount)}
+                </strong>
+
+              </div>
+
+              <div style={totalDivider}></div>
+
+              <div style={grandTotalLine}>
+
+                <span>
+                  Total
+                </span>
+
+                <strong>
+                  {currency(grandTotal)}
+                </strong>
+
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              style={createBtn}
+              onClick={createDocument}
+            >
+
+              {documentType === "quotation" ? (
+                <>
+                  <FileText size={18} />
+                  <span>Create Quotation</span>
+                </>
+              ) : (
+                <>
+                  <Receipt size={18} />
+                  <span>Create Invoice</span>
+                </>
+              )}
+
+            </button>
+
+          </div>
+
+        </div>
+
+        {/* =================================================
+            DOCUMENTS
+        ================================================= */}
+
+        <div
+          style={card}
+          className="books-card"
+        >
+
+          <div style={sectionHeader}>
+
+            <div style={sectionHeaderIcon}>
+              <Library size={21} />
+            </div>
+
+            <div>
+
+              <h2
+                style={sectionTitle}
+                className="books-section-title"
+              >
+                Documents
+              </h2>
+
+              <p
+                style={sectionDescription}
+                className="books-section-description"
+              >
+                View, download, mark as paid or delete your documents.
+              </p>
+
+            </div>
+
+          </div>
+
+          {/* DESKTOP DOCUMENT TABLE */}
+
+          <div className="desktopOnly">
+
             <div style={tableWrapper}>
+
               <table style={table}>
 
                 <thead style={thead}>
+
                   <tr>
+
                     <th style={th}>
-                      Product
+                      Number
                     </th>
 
                     <th style={th}>
-                      Qty
+                      Customer
                     </th>
 
                     <th style={th}>
-                      Price
+                      Type
+                    </th>
+
+                    <th style={th}>
+                      Status
                     </th>
 
                     <th style={th}>
@@ -1047,284 +1765,279 @@ export default function Books() {
                     </th>
 
                     <th style={th}>
-                      Action
+                      Actions
                     </th>
+
                   </tr>
+
                 </thead>
 
                 <tbody>
-                  {lineItems.map(
-                    (item, index) => (
+
+                  {filtered.length === 0 ? (
+                    <tr>
+
+                      <td
+                        colSpan="6"
+                        style={emptyCell}
+                      >
+
+                        <div style={emptyState}>
+
+                          <div style={emptyIcon}>
+                            <Library size={25} />
+                          </div>
+
+                          <strong>
+                            No documents found
+                          </strong>
+
+                          <span>
+                            Try changing your search.
+                          </span>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+                  ) : (
+                    filtered.map((book) => (
                       <tr
-                        key={index}
+                        key={book._id}
                         style={tableRow}
                       >
-                        <td style={td}>
-                          <strong>
-                            {item.name}
-                          </strong>
 
-                          {item.size && (
-                            <div style={itemSize}>
-                              {item.size}
+                        <td style={td}>
+
+                          <div
+                            style={documentNumber}
+                          >
+
+                            <FileText size={15} />
+
+                            <strong>
+                              {book.documentNumber}
+                            </strong>
+
+                          </div>
+
+                        </td>
+
+                        <td style={td}>
+
+                          <div
+                            style={customerCell}
+                          >
+
+                            <div
+                              style={customerIcon}
+                            >
+                              <User size={15} />
                             </div>
-                          )}
+
+                            <div>
+
+                              <strong>
+                                {book.customer}
+                              </strong>
+
+                              {book.phone && (
+                                <div
+                                  style={customerPhone}
+                                >
+                                  <Phone size={11} />
+                                  {book.phone}
+                                </div>
+                              )}
+
+                            </div>
+
+                          </div>
+
                         </td>
 
                         <td style={td}>
-                          {item.quantity}
-                        </td>
 
-                        <td style={td}>
-                          {currency(
-                            item.price
-                          )}
-                        </td>
-
-                        <td style={td}>
-                          <strong>
-                            {currency(
-                              item.total
-                            )}
-                          </strong>
-                        </td>
-
-                        <td style={td}>
-                          <button
-                            style={deleteBtn}
-                            onClick={() =>
-                              removeItem(index)
+                          <span
+                            style={
+                              book.type ===
+                              "invoice"
+                                ? invoiceBadge
+                                : quotationBadge
                             }
                           >
-                            Remove
-                          </button>
+                            {getTypeIcon(book.type)}
+                            {book.type}
+                          </span>
+
                         </td>
+
+                        <td style={td}>
+
+                          <span
+                            style={
+                              book.status ===
+                              "paid"
+                                ? paidBadge
+                                : unpaidBadge
+                            }
+                          >
+                            {getStatusIcon(
+                              book.status
+                            )}
+                            {book.status}
+                          </span>
+
+                        </td>
+
+                        <td style={td}>
+
+                          <strong>
+                            {currency(book.total)}
+                          </strong>
+
+                        </td>
+
+                        <td style={td}>
+
+                          <div style={actions}>
+
+                            <button
+                              type="button"
+                              style={pdfBtn}
+                              onClick={() =>
+                                downloadPDF(book)
+                              }
+                            >
+                              <Download size={15} />
+                              PDF
+                            </button>
+
+                            {book.status !==
+                              "paid" && (
+                              <button
+                                type="button"
+                                style={paidBtn}
+                                onClick={() =>
+                                  markPaid(
+                                    book._id
+                                  )
+                                }
+                              >
+                                <Check size={15} />
+                                Paid
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              style={deleteBtn}
+                              onClick={() =>
+                                deleteBook(book)
+                              }
+                            >
+                              <Trash2 size={15} />
+                              Delete
+                            </button>
+
+                          </div>
+
+                        </td>
+
                       </tr>
-                    )
+                    ))
                   )}
+
                 </tbody>
 
               </table>
-            </div>
 
-          </div>
-        )}
-
-        {/* =================================================
-            BILLING DETAILS
-        ================================================= */}
-
-        <div style={totalsCard}>
-
-       <h3 style={billingTitle}>
-            <span style={billingIcon}>
-              <CreditCard size={19} />
-            </span>
-            Billing Details
-          </h3>
-
-          <div style={billingGrid}>
-
-            <div style={field}>
-              <label style={billingLabel}>
-                VAT %
-              </label>
-
-              <input
-                style={billingInput}
-                type="number"
-                min="0"
-                value={vat}
-                onChange={(e) =>
-                  setVat(e.target.value)
-                }
-              />
-            </div>
-
-            <div style={field}>
-              <label style={billingLabel}>
-                Discount %
-              </label>
-
-              <input
-                style={billingInput}
-                type="number"
-                min="0"
-                value={discount}
-                onChange={(e) =>
-                  setDiscount(
-                    e.target.value
-                  )
-                }
-              />
             </div>
 
           </div>
 
-          <div style={field}>
-            <label style={billingLabel}>
-              Notes
-            </label>
+          {/* MOBILE DOCUMENT CARDS */}
 
-            <textarea
-              style={billingTextarea}
-              placeholder="Notes"
-              value={notes}
-              onChange={(e) =>
-                setNotes(e.target.value)
-              }
-            />
-          </div>
+          <div className="mobileOnly">
 
-          {/* TOTALS */}
+            {filtered.length === 0 ? (
+              <div
+                style={mobileEmptyState}
+              >
 
-          <div style={totalsBox}>
+                <div style={emptyIcon}>
+                  <Library size={25} />
+                </div>
 
-            <div style={totalLine}>
-              <span>
-                Subtotal
-              </span>
+                <strong>
+                  No documents found
+                </strong>
 
-              <strong>
-                {currency(subtotal)}
-              </strong>
-            </div>
+                <span>
+                  Try changing your search.
+                </span>
 
-            <div style={totalLine}>
-              <span>
-                VAT
-              </span>
+              </div>
+            ) : (
+              <div
+                style={mobileDocumentsGrid}
+              >
 
-              <strong>
-                {currency(vatAmount)}
-              </strong>
-            </div>
-
-            <div style={totalLine}>
-              <span>
-                Discount
-              </span>
-
-              <strong>
-                {currency(discountAmount)}
-              </strong>
-            </div>
-
-            <div style={totalDivider}></div>
-
-            <div style={grandTotalLine}>
-              <span>
-                Total
-              </span>
-
-              <strong>
-                {currency(grandTotal)}
-              </strong>
-            </div>
-
-          </div>
-
-         <button
-              style={createBtn}
-              onClick={createDocument}
-            >
-              {documentType === "quotation" ? (
-                <>
-                  <FileText size={18} />
-                  Create Quotation
-                </>
-              ) : (
-                <>
-                  <Receipt size={18} />
-                  Create Invoice
-                </>
-              )}
-            </button>
-
-        </div>
-
-      </div>
-
-      {/* =================================================
-          DOCUMENTS
-      ================================================= */}
-
-      <div style={card}>
-
-        <h2 style={sectionTitle}>
-          <span style={titleIcon}>
-            <Library size={21} />
-          </span>
-          Documents
-        </h2>
-
-        <p style={sectionDescription}>
-          View, download, mark as paid or delete your documents.
-        </p>
-
-        <div style={tableWrapper}>
-
-          <table style={table}>
-
-            <thead style={thead}>
-              <tr>
-
-                <th style={th}>
-                  Number
-                </th>
-
-                <th style={th}>
-                  Customer
-                </th>
-
-                <th style={th}>
-                  Type
-                </th>
-
-                <th style={th}>
-                  Status
-                </th>
-
-                <th style={th}>
-                  Total
-                </th>
-
-                <th style={th}>
-                  Actions
-                </th>
-
-              </tr>
-            </thead>
-
-            <tbody>
-
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    style={emptyCell}
-                  >
-                    No documents found.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((book) => (
-                  <tr
+                {filtered.map((book) => (
+                  <div
                     key={book._id}
-                    style={tableRow}
+                    style={mobileDocumentCard}
                   >
 
-                    <td style={td}>
-                      <strong>
-                        {book.documentNumber}
-                      </strong>
-                    </td>
+                    <div
+                      style={mobileDocumentHeader}
+                      className="books-mobile-document-header"
+                    >
 
-                    <td style={td}>
-                      {book.customer}
-                    </td>
+                      <div
+                        style={mobileDocumentNumber}
+                      >
 
-                    <td style={td}>
+                        <div
+                          style={mobileDocumentIcon}
+                        >
+                          {book.type ===
+                          "invoice" ? (
+                            <Receipt size={17} />
+                          ) : (
+                            <FileText size={17} />
+                          )}
+                        </div>
+
+                        <div>
+
+                          <strong>
+                            {book.documentNumber}
+                          </strong>
+
+                          <div
+                            style={
+                              mobileDocumentDate
+                            }
+                          >
+                            <CalendarDays
+                              size={11}
+                            />
+
+                            {book.createdAt
+                              ? new Date(
+                                  book.createdAt
+                                ).toLocaleDateString(
+                                  "en-ZA"
+                                )
+                              : "Document"}
+                          </div>
+
+                        </div>
+
+                      </div>
+
                       <span
                         style={
                           book.type === "invoice"
@@ -1332,159 +2045,321 @@ export default function Books() {
                             : quotationBadge
                         }
                       >
+                        {getTypeIcon(book.type)}
                         {book.type}
                       </span>
-                    </td>
 
-                    <td style={td}>
-                      <span
+                    </div>
+
+                    <div
+                      style={mobileCustomerBox}
+                    >
+
+                      <div
                         style={
-                          book.status === "paid"
-                            ? paidBadge
-                            : unpaidBadge
+                          mobileCustomerIcon
                         }
                       >
-                        {book.status}
-                      </span>
-                    </td>
+                        <User size={17} />
+                      </div>
 
-                    <td style={td}>
-                      <strong>
-                        {currency(book.total)}
-                      </strong>
-                    </td>
+                      <div
+                        style={{
+                          minWidth: 0,
+                        }}
+                      >
 
-                    <td style={td}>
+                        <span
+                          style={mobileSmallLabel}
+                        >
+                          Customer
+                        </span>
 
-                      <div style={actions}>
+                        <strong
+                          style={mobileCustomerName}
+                        >
+                          {book.customer || "-"}
+                        </strong>
 
-                        <button
-                          style={pdfBtn}
-                          onClick={() =>
-                            downloadPDF(book)
+                        {book.phone && (
+                          <div
+                            style={mobilePhone}
+                          >
+                            <Phone size={12} />
+                            {book.phone}
+                          </div>
+                        )}
+
+                      </div>
+
+                    </div>
+
+                    <div
+                      style={mobileDocumentInfo}
+                    >
+
+                      <div
+                        style={mobileInfoItem}
+                      >
+
+                        <span>
+                          Status
+                        </span>
+
+                        <span
+                          style={
+                            book.status ===
+                            "paid"
+                              ? paidBadge
+                              : unpaidBadge
                           }
                         >
-                          <Download size={15} />
-                          PDF
-                        </button>
+                          {getStatusIcon(
+                            book.status
+                          )}
+                          {book.status}
+                        </span>
 
-                        {book.status !== "paid" && (
+                      </div>
+
+                      <div
+                        style={mobileInfoItem}
+                      >
+
+                        <span>
+                          Total
+                        </span>
+
+                        <strong
+                          style={mobileTotal}
+                        >
+                          {currency(book.total)}
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                    <div
+                      style={mobileActions}
+                      className="books-mobile-actions"
+                    >
+
+                      <button
+                        type="button"
+                        style={mobilePdfBtn}
+                        onClick={() =>
+                          downloadPDF(book)
+                        }
+                      >
+                        <Download size={15} />
+                        PDF
+                      </button>
+
+                      {book.status !==
+                        "paid" && (
                         <button
-                          style={paidBtn}
+                          type="button"
+                          style={mobilePaidBtn}
                           onClick={() =>
-                            markPaid(book._id)
+                            markPaid(
+                              book._id
+                            )
                           }
                         >
                           <Check size={15} />
                           Paid
                         </button>
-                        )}
+                      )}
 
-                        <button
-                          style={deleteBtn}
-                          onClick={() =>
-                            deleteBook(book)
-                          }
-                        >
-                          <Trash2 size={15} />
-                          Delete
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        style={mobileDeleteBtn}
+                        onClick={() =>
+                          deleteBook(book)
+                        }
+                      >
+                        <Trash2 size={15} />
+                        Delete
+                      </button>
 
-                    </td>
+                    </div>
 
-                  </tr>
-                ))
-              )}
+                  </div>
+                ))}
 
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      {/* =================================================
-          SYSTEM MODAL
-      ================================================= */}
-
-      {systemModal.open && (
-        <div style={modal}>
-
-          <div style={modalBox}>
-
-            <div
-              style={{
-                ...modalIcon,
-                background:
-                  systemModal.type === "error"
-                    ? "#fee2e2"
-                    : systemModal.type === "warning"
-                    ? "#fef3c7"
-                    : systemModal.type === "success"
-                    ? "#dcfce7"
-                    : "#dbeafe",
-              }}
-            >
-              {systemModal.type === "error" ? (
-                    <CircleAlert size={23} />
-                  ) : systemModal.type === "warning" ? (
-                    <AlertTriangle size={23} />
-                  ) : systemModal.type === "success" ? (
-                    <CircleCheck size={23} />
-                  ) : systemModal.type === "confirm" ? (
-                    <HelpCircle size={23} />
-                  ) : (
-                    <Info size={23} />
-                  )}
-            </div>
-
-            <h2 style={modalTitle}>
-              {systemModal.title}
-            </h2>
-
-            <p style={modalMessage}>
-              {systemModal.message}
-            </p>
-
-            <div style={modalActions}>
-
-              {systemModal.type === "confirm" && (
-               <button
-                  style={cancelBtn}
-                  onClick={closeModal}
-                >
-                  <X size={16} />
-                  Cancel
-                </button>
-              )}
-
-              <button
-                style={
-                  systemModal.type === "error"
-                    ? deleteBtn
-                    : createBtnModal
-                }
-                onClick={() => {
-                  if (systemModal.onConfirm) {
-                    systemModal.onConfirm();
-                  } else {
-                    closeModal();
-                  }
-                }}
-              >
-                {systemModal.type === "confirm"
-                  ? "Confirm"
-                  : "OK"}
-              </button>
-
-            </div>
+              </div>
+            )}
 
           </div>
 
         </div>
-      )}
+
+        {/* =================================================
+            SYSTEM MODAL
+        ================================================= */}
+
+        {systemModal.open && (
+          <div
+            style={modal}
+            className="books-modal"
+          >
+
+            <div
+              style={modalBox}
+              className="books-modal-box"
+            >
+
+              <div
+                style={{
+                  ...modalIcon,
+                  background:
+                    systemModal.type === "error"
+                      ? "#fee2e2"
+                      : systemModal.type ===
+                        "warning"
+                      ? "#fef3c7"
+                      : systemModal.type ===
+                        "success"
+                      ? "#dcfce7"
+                      : "#dbeafe",
+
+                  color:
+                    systemModal.type === "error"
+                      ? "#dc2626"
+                      : systemModal.type ===
+                        "warning"
+                      ? "#d97706"
+                      : systemModal.type ===
+                        "success"
+                      ? "#16a34a"
+                      : "#2563eb",
+                }}
+              >
+
+                {systemModal.type ===
+                "error" ? (
+                  <CircleAlert size={23} />
+                ) : systemModal.type ===
+                  "warning" ? (
+                  <AlertTriangle size={23} />
+                ) : systemModal.type ===
+                  "success" ? (
+                  <CircleCheck size={23} />
+                ) : systemModal.type ===
+                  "confirm" ? (
+                  <HelpCircle size={23} />
+                ) : (
+                  <Info size={23} />
+                )}
+
+              </div>
+
+              <h2 style={modalTitle}>
+                {systemModal.title}
+              </h2>
+
+              <p style={modalMessage}>
+                {systemModal.message}
+              </p>
+
+              <div
+                style={modalActions}
+                className="books-modal-actions"
+              >
+
+                {systemModal.type ===
+                  "confirm" && (
+                  <button
+                    type="button"
+                    style={cancelBtn}
+                    onClick={closeModal}
+                  >
+                    <X size={16} />
+                    Cancel
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  style={
+                    systemModal.type ===
+                    "error"
+                      ? deleteBtn
+                      : createBtnModal
+                  }
+                  onClick={() => {
+
+                    if (
+                      systemModal.onConfirm
+                    ) {
+                      systemModal.onConfirm();
+                    } else {
+                      closeModal();
+                    }
+
+                  }}
+                >
+
+                  {systemModal.type ===
+                  "confirm"
+                    ? "Confirm"
+                    : "OK"}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </>
+  );
+}
+
+/* =========================================================
+   SUMMARY CARD
+========================================================= */
+
+function SummaryCard({
+  icon,
+  label,
+  number,
+  description,
+}) {
+  return (
+    <div
+      style={summaryCard}
+      className="books-summary-card"
+    >
+
+      <div style={summaryIcon}>
+        {icon}
+      </div>
+
+      <div
+        style={summaryLabel}
+        className="books-summary-label"
+      >
+        {label}
+      </div>
+
+      <div
+        style={summaryNumber}
+        className="books-summary-number"
+      >
+        {number}
+      </div>
+
+      <div
+        style={summaryDescription}
+        className="books-summary-description"
+      >
+        {description}
+      </div>
 
     </div>
   );
@@ -1502,12 +2377,6 @@ const page = {
   boxSizing: "border-box",
   minHeight: "100vh",
   overflowX: "hidden",
-
-  /*
-    IMPORTANT:
-    These colors are deliberately explicit so that
-    Light mode does not make the page title white.
-  */
   background: "#f8fafc",
   color: "#0f172a",
 };
@@ -1521,6 +2390,21 @@ const pageHeader = {
   alignItems: "center",
   gap: 16,
   marginBottom: 25,
+  width: "100%",
+  minWidth: 0,
+};
+
+const pageHeaderText = {
+  minWidth: 0,
+  flex: 1,
+};
+
+const headerTopRow = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 15,
+  width: "100%",
 };
 
 const pageHeaderIcon = {
@@ -1529,11 +2413,12 @@ const pageHeaderIcon = {
   minWidth: 52,
   borderRadius: 14,
   background: "#dbeafe",
+  color: "#2563eb",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: 29,
-  boxShadow: "0 4px 12px rgba(37,99,235,.12)",
+  boxShadow:
+    "0 4px 12px rgba(37,99,235,.12)",
 };
 
 const title = {
@@ -1553,6 +2438,28 @@ const subtitle = {
 };
 
 /* =========================================================
+   REFRESH
+========================================================= */
+
+const refreshBtn = {
+  minHeight: 42,
+  padding: "10px 14px",
+  borderRadius: 10,
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 700,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  whiteSpace: "nowrap",
+  boxSizing: "border-box",
+};
+
+/* =========================================================
    SUMMARY
 ========================================================= */
 
@@ -1561,7 +2468,7 @@ const summaryGrid = {
   gridTemplateColumns:
     "repeat(auto-fit,minmax(220px,1fr))",
   gap: 16,
-  marginBottom: 25,
+  marginBottom: 18,
 };
 
 const summaryCard = {
@@ -1574,6 +2481,7 @@ const summaryCard = {
   boxSizing: "border-box",
   boxShadow:
     "0 10px 25px rgba(30,64,175,.18)",
+  minWidth: 0,
 };
 
 const summaryIcon = {
@@ -1581,10 +2489,10 @@ const summaryIcon = {
   height: 38,
   borderRadius: 10,
   background: "rgba(255,255,255,.18)",
+  color: "#ffffff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: 20,
   marginBottom: 13,
 };
 
@@ -1609,6 +2517,74 @@ const summaryDescription = {
 };
 
 /* =========================================================
+   STATUS OVERVIEW
+========================================================= */
+
+const statusOverview = {
+  display: "flex",
+  alignItems: "center",
+  gap: 22,
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: 16,
+  padding: "15px 20px",
+  marginBottom: 25,
+  boxShadow:
+    "0 6px 18px rgba(15,23,42,.05)",
+  boxSizing: "border-box",
+  width: "100%",
+};
+
+const statusOverviewItem = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  minWidth: 0,
+};
+
+const statusOverviewIcon = {
+  width: 36,
+  height: 36,
+  borderRadius: 10,
+  background: "#dcfce7",
+  color: "#16a34a",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+};
+
+const statusOverviewIconUnpaid = {
+  width: 36,
+  height: 36,
+  borderRadius: 10,
+  background: "#fee2e2",
+  color: "#dc2626",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+};
+
+const statusOverviewNumber = {
+  fontSize: 18,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const statusOverviewLabel = {
+  fontSize: 11,
+  color: "#64748b",
+  marginTop: 1,
+};
+
+const statusOverviewDivider = {
+  width: 1,
+  height: 35,
+  background: "#e2e8f0",
+};
+
+/* =========================================================
    SEARCH
 ========================================================= */
 
@@ -1620,41 +2596,97 @@ const searchCard = {
   boxSizing: "border-box",
   boxShadow:
     "0 8px 20px rgba(15,23,42,.12)",
+  width: "100%",
 };
 
 const searchHeader = {
   display: "flex",
-  alignItems: "flex-start",
-  gap: 10,
+  alignItems: "center",
+  gap: 11,
   color: "#ffffff",
-  fontSize: 25,
   marginBottom: 15,
+  minWidth: 0,
+};
+
+const searchHeaderIcon = {
+  width: 40,
+  height: 40,
+  minWidth: 40,
+  borderRadius: 10,
+  background: "rgba(255,255,255,.1)",
+  color: "#ffffff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const searchHeaderText = {
+  minWidth: 0,
 };
 
 const searchTitle = {
   margin: 0,
-  fontSize: 22,
+  fontSize: 21,
   color: "#ffffff",
   fontWeight: 800,
 };
 
 const searchDescription = {
-  margin: "5px 0 0",
+  margin: "4px 0 0",
   color: "#cbd5e1",
   fontSize: 13,
+  lineHeight: 1.5,
+};
+
+const searchInputWrapper = {
+  position: "relative",
+  width: "100%",
+  maxWidth: 700,
+};
+
+const searchInputIcon = {
+  position: "absolute",
+  left: 13,
+  top: "50%",
+  transform: "translateY(-50%)",
+  color: "#94a3b8",
+  pointerEvents: "none",
 };
 
 const searchInput = {
   width: "100%",
-  maxWidth: 500,
   boxSizing: "border-box",
-  padding: 13,
+  padding: "13px 42px 13px 40px",
   borderRadius: 11,
   border: "1px solid #475569",
   background: "#334155",
   color: "#ffffff",
   outline: "none",
   fontSize: 14,
+  minWidth: 0,
+};
+
+const clearSearchBtn = {
+  position: "absolute",
+  right: 8,
+  top: "50%",
+  transform: "translateY(-50%)",
+  width: 30,
+  height: 30,
+  borderRadius: 8,
+  border: "none",
+  background: "#475569",
+  color: "#ffffff",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const searchResultText = {
+  marginTop: 10,
+  color: "#94a3b8",
+  fontSize: 12,
 };
 
 /* =========================================================
@@ -1671,31 +2703,46 @@ const card = {
   boxShadow:
     "0 8px 25px rgba(15,23,42,.08)",
   border: "1px solid #e2e8f0",
+  minWidth: 0,
+};
+
+const sectionHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 12,
+  marginBottom: 20,
+};
+
+const sectionHeaderIcon = {
+  width: 42,
+  height: 42,
+  minWidth: 42,
+  borderRadius: 11,
+  background: "#dbeafe",
+  color: "#2563eb",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const sectionTitle = {
   margin: 0,
-  marginBottom: 7,
   fontSize: 23,
   fontWeight: 800,
   color: "#0f172a",
 };
 
 const sectionDescription = {
-  margin: "0 0 20px",
+  margin: "5px 0 0",
   color: "#64748b",
   fontSize: 13,
+  lineHeight: 1.5,
 };
 
 const subSection = {
   marginTop: 22,
-};
-
-const miniTitle = {
-  margin: "0 0 13px",
-  fontSize: 17,
-  fontWeight: 700,
-  color: "#1e3a8a",
+  width: "100%",
+  minWidth: 0,
 };
 
 /* =========================================================
@@ -1705,16 +2752,20 @@ const miniTitle = {
 const formGrid = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(auto-fit,minmax(200px,1fr))",
+    "repeat(auto-fit,minmax(min(100%,220px),1fr))",
   gap: 15,
+  width: "100%",
+  minWidth: 0,
 };
 
 const productGrid = {
   display: "grid",
   gridTemplateColumns:
-    "minmax(200px,2fr) minmax(120px,1fr) minmax(160px,1fr)",
+    "minmax(0,2fr) minmax(120px,0.8fr) minmax(130px,0.8fr)",
   gap: 15,
   alignItems: "end",
+  width: "100%",
+  minWidth: 0,
 };
 
 const field = {
@@ -1727,10 +2778,13 @@ const buttonField = {
   minWidth: 0,
   display: "flex",
   alignItems: "flex-end",
+  boxSizing: "border-box",
 };
 
 const label = {
-  display: "block",
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
   fontSize: 13,
   fontWeight: 600,
   color: "#334155",
@@ -1748,11 +2802,8 @@ const input = {
   background: "#ffffff",
   color: "#0f172a",
   boxSizing: "border-box",
+  minWidth: 0,
 };
-
-/* =========================================================
-   BUTTONS
-========================================================= */
 
 const addBtn = {
   width: "100%",
@@ -1770,11 +2821,16 @@ const addBtn = {
   alignItems: "center",
   justifyContent: "center",
   gap: 7,
+  boxSizing: "border-box",
+  minWidth: 0,
+  whiteSpace: "nowrap",
 };
 
 const createBtn = {
   marginTop: 18,
   width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box",
   background:
     "linear-gradient(135deg,#0f172a,#1e3a8a)",
   color: "#ffffff",
@@ -1788,100 +2844,66 @@ const createBtn = {
   alignItems: "center",
   justifyContent: "center",
   gap: 8,
+  minWidth: 0,
 };
 
-const createBtnModal = {
-  background:
-    "linear-gradient(135deg,#0f172a,#1e3a8a)",
-  color: "#ffffff",
-  border: "none",
-  borderRadius: 10,
-  padding: "10px 17px",
-  cursor: "pointer",
+/* =========================================================
+   MINI HEADINGS
+========================================================= */
+
+const miniTitle = {
+  margin: "0 0 13px",
+  fontSize: 17,
   fontWeight: 700,
+  color: "#1e3a8a",
+  display: "flex",
+  alignItems: "center",
 };
 
-const paidBtn = {
-  background: "#16a34a",
-  color: "#ffffff",
-  border: "none",
-  padding: "9px 12px",
-  borderRadius: 9,
-  cursor: "pointer",
-  fontWeight: 700,
-  whiteSpace: "nowrap",
+const miniTitleIcon = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 6,
-};
-
-const deleteBtn = {
-  background: "#dc2626",
-  color: "#ffffff",
-  border: "none",
-  padding: "9px 12px",
-  borderRadius: 9,
-  cursor: "pointer",
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-};
-
-const pdfBtn = {
-  background:
-    "linear-gradient(135deg,#1e40af,#1d4ed8)",
-  color: "#ffffff",
-  border: "none",
-  padding: "9px 12px",
-  borderRadius: 9,
-  cursor: "pointer",
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-};
-
-const cancelBtn = {
-  background: "#e2e8f0",
-  color: "#0f172a",
-  border: "none",
-  borderRadius: 10,
-  padding: "10px 15px",
-  cursor: "pointer",
-  fontWeight: 700,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-};
-
-const billingIcon = {
-  display: "inline-flex",
-  alignItems: "center",
-  verticalAlign: "middle",
   marginRight: 7,
   color: "#2563eb",
 };
-/* =========================================================
-   ITEMS
-========================================================= */
 
 const itemsSection = {
   marginTop: 25,
+  width: "100%",
+  minWidth: 0,
 };
+
+const itemsHeader = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 13,
+};
+
+const itemCountBadge = {
+  padding: "5px 9px",
+  borderRadius: 8,
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  fontSize: 11,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+};
+
+/* =========================================================
+   TABLE
+========================================================= */
 
 const tableWrapper = {
   width: "100%",
+  maxWidth: "100%",
   overflowX: "auto",
   WebkitOverflowScrolling: "touch",
   borderRadius: 12,
   border: "1px solid #e2e8f0",
+  boxSizing: "border-box",
 };
 
 const table = {
@@ -1917,15 +2939,140 @@ const tableRow = {
   background: "#ffffff",
 };
 
+const productNameRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 9,
+  minWidth: 0,
+};
+
+const productTableIcon = {
+  width: 31,
+  height: 31,
+  minWidth: 31,
+  borderRadius: 8,
+  background: "#eff6ff",
+  color: "#2563eb",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
 const itemSize = {
   marginTop: 3,
   fontSize: 11,
   color: "#64748b",
 };
 
-const emptyCell = {
-  padding: 30,
-  textAlign: "center",
+const quantityBadge = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: 30,
+  padding: "5px 8px",
+  borderRadius: 7,
+  background: "#f1f5f9",
+  color: "#334155",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const removeItemBtn = {
+  background: "#fee2e2",
+  color: "#b91c1c",
+  border: "none",
+  padding: "8px 10px",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+};
+
+/* =========================================================
+   MOBILE ITEM CARD
+========================================================= */
+
+const mobileItemCard = {
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: 14,
+  padding: 14,
+  marginBottom: 10,
+  boxSizing: "border-box",
+  boxShadow:
+    "0 4px 12px rgba(15,23,42,.04)",
+};
+
+const mobileItemTop = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 10,
+};
+
+const mobileItemProduct = {
+  display: "flex",
+  alignItems: "center",
+  gap: 9,
+  minWidth: 0,
+};
+
+const mobileProductIcon = {
+  width: 34,
+  height: 34,
+  minWidth: 34,
+  borderRadius: 9,
+  background: "#eff6ff",
+  color: "#2563eb",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const mobileProductName = {
+  display: "block",
+  color: "#0f172a",
+  fontSize: 14,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const mobileRemoveBtn = {
+  width: 34,
+  height: 34,
+  minWidth: 34,
+  borderRadius: 9,
+  border: "none",
+  background: "#fee2e2",
+  color: "#dc2626",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+};
+
+const mobileItemDetails = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3,1fr)",
+  gap: 8,
+  marginTop: 13,
+  paddingTop: 12,
+  borderTop: "1px solid #e2e8f0",
+};
+
+const mobileDetail = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 3,
+  minWidth: 0,
+};
+
+const mobileDetailLabel = {
+  fontSize: 10,
   color: "#64748b",
 };
 
@@ -1940,6 +3087,8 @@ const totalsCard = {
   padding: 20,
   border: "1px solid #dbeafe",
   boxSizing: "border-box",
+  width: "100%",
+  minWidth: 0,
 };
 
 const billingTitle = {
@@ -1947,6 +3096,16 @@ const billingTitle = {
   fontSize: 18,
   fontWeight: 800,
   color: "#0f172a",
+  display: "flex",
+  alignItems: "center",
+};
+
+const billingIcon = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: 7,
+  color: "#2563eb",
 };
 
 const billingGrid = {
@@ -1954,10 +3113,14 @@ const billingGrid = {
   gridTemplateColumns:
     "repeat(auto-fit,minmax(180px,1fr))",
   gap: 15,
+  width: "100%",
+  minWidth: 0,
 };
 
 const billingLabel = {
-  display: "block",
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
   fontSize: 13,
   fontWeight: 700,
   color: "#334155",
@@ -1975,6 +3138,7 @@ const billingInput = {
   boxSizing: "border-box",
   fontSize: 14,
   outline: "none",
+  minWidth: 0,
 };
 
 const billingTextarea = {
@@ -1990,6 +3154,7 @@ const billingTextarea = {
   fontSize: 14,
   boxSizing: "border-box",
   outline: "none",
+  minWidth: 0,
 };
 
 const totalsBox = {
@@ -2000,6 +3165,9 @@ const totalsBox = {
   marginTop: 18,
   boxShadow:
     "0 6px 16px rgba(15,23,42,.12)",
+  boxSizing: "border-box",
+  width: "100%",
+  minWidth: 0,
 };
 
 const totalLine = {
@@ -2030,76 +3198,332 @@ const grandTotalLine = {
    BADGES
 ========================================================= */
 
-const quotationBadge = {
-  display: "inline-block",
-  padding: "5px 9px",
-  borderRadius: 8,
-  background: "#dbeafe",
-  color: "#1d4ed8",
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-
-const invoiceBadge = {
-  display: "inline-block",
-  padding: "5px 9px",
-  borderRadius: 8,
-  background: "#ede9fe",
-  color: "#6d28d9",
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-
-const paidBadge = {
-  display: "inline-block",
-  padding: "5px 9px",
-  borderRadius: 8,
-  background: "#dcfce7",
-  color: "#15803d",
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-
-const unpaidBadge = {
-  display: "inline-block",
-  padding: "5px 9px",
-  borderRadius: 8,
-  background: "#fee2e2",
-  color: "#b91c1c",
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: "capitalize",
-};
-
-const titleIcon = {
+const baseBadge = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  marginRight: 8,
-  color: "#2563eb",
-  verticalAlign: "middle",
+  gap: 5,
+  padding: "5px 9px",
+  borderRadius: 8,
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: "capitalize",
+  whiteSpace: "nowrap",
 };
 
-const miniTitleIcon = {
-  display: "inline-flex",
-  alignItems: "center",
-  verticalAlign: "middle",
-  marginRight: 7,
-  color: "#2563eb",
+const quotationBadge = {
+  ...baseBadge,
+  background: "#dbeafe",
+  color: "#1d4ed8",
+};
+
+const invoiceBadge = {
+  ...baseBadge,
+  background: "#ede9fe",
+  color: "#6d28d9",
+};
+
+const paidBadge = {
+  ...baseBadge,
+  background: "#dcfce7",
+  color: "#15803d",
+};
+
+const unpaidBadge = {
+  ...baseBadge,
+  background: "#fee2e2",
+  color: "#b91c1c",
 };
 
 /* =========================================================
-   ACTIONS
+   DOCUMENT CELLS
 ========================================================= */
+
+const documentNumber = {
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+  color: "#1e3a8a",
+};
+
+const customerCell = {
+  display: "flex",
+  alignItems: "center",
+  gap: 9,
+  minWidth: 0,
+};
+
+const customerIcon = {
+  width: 31,
+  height: 31,
+  minWidth: 31,
+  borderRadius: 8,
+  background: "#f1f5f9",
+  color: "#475569",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const customerPhone = {
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+  marginTop: 3,
+  color: "#64748b",
+  fontSize: 10,
+};
 
 const actions = {
   display: "flex",
   gap: 7,
   flexWrap: "wrap",
   alignItems: "center",
+};
+
+const pdfBtn = {
+  background:
+    "linear-gradient(135deg,#1e40af,#1d4ed8)",
+  color: "#ffffff",
+  border: "none",
+  padding: "9px 12px",
+  borderRadius: 9,
+  cursor: "pointer",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  boxSizing: "border-box",
+};
+
+const paidBtn = {
+  background: "#16a34a",
+  color: "#ffffff",
+  border: "none",
+  padding: "9px 12px",
+  borderRadius: 9,
+  cursor: "pointer",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  boxSizing: "border-box",
+};
+
+const deleteBtn = {
+  background: "#dc2626",
+  color: "#ffffff",
+  border: "none",
+  padding: "9px 12px",
+  borderRadius: 9,
+  cursor: "pointer",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  boxSizing: "border-box",
+};
+
+/* =========================================================
+   MOBILE DOCUMENT CARDS
+========================================================= */
+
+const mobileDocumentsGrid = {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 12,
+};
+
+const mobileDocumentCard = {
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: 16,
+  padding: 15,
+  boxSizing: "border-box",
+  boxShadow:
+    "0 4px 14px rgba(15,23,42,.05)",
+};
+
+const mobileDocumentHeader = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 10,
+};
+
+const mobileDocumentNumber = {
+  display: "flex",
+  alignItems: "center",
+  gap: 9,
+  minWidth: 0,
+};
+
+const mobileDocumentIcon = {
+  width: 36,
+  height: 36,
+  minWidth: 36,
+  borderRadius: 9,
+  background: "#eff6ff",
+  color: "#2563eb",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const mobileDocumentDate = {
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+  marginTop: 3,
+  color: "#64748b",
+  fontSize: 10,
+};
+
+const mobileCustomerBox = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  marginTop: 15,
+  padding: 12,
+  borderRadius: 11,
+  background: "#f8fafc",
+  minWidth: 0,
+};
+
+const mobileCustomerIcon = {
+  width: 35,
+  height: 35,
+  minWidth: 35,
+  borderRadius: 9,
+  background: "#e2e8f0",
+  color: "#475569",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const mobileSmallLabel = {
+  display: "block",
+  color: "#64748b",
+  fontSize: 10,
+  marginBottom: 2,
+};
+
+const mobileCustomerName = {
+  display: "block",
+  color: "#0f172a",
+  fontSize: 14,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
+const mobilePhone = {
+  display: "flex",
+  alignItems: "center",
+  gap: 4,
+  color: "#64748b",
+  fontSize: 10,
+  marginTop: 3,
+};
+
+const mobileDocumentInfo = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+  marginTop: 12,
+};
+
+const mobileInfoItem = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 5,
+  padding: 10,
+  border: "1px solid #e2e8f0",
+  borderRadius: 10,
+};
+
+const mobileTotal = {
+  fontSize: 15,
+  color: "#0f172a",
+};
+
+const mobileActions = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3,1fr)",
+  gap: 7,
+  marginTop: 12,
+};
+
+const mobilePdfBtn = {
+  ...pdfBtn,
+  width: "100%",
+  padding: "10px 6px",
+  fontSize: 12,
+};
+
+const mobilePaidBtn = {
+  ...paidBtn,
+  width: "100%",
+  padding: "10px 6px",
+  fontSize: 12,
+};
+
+const mobileDeleteBtn = {
+  ...deleteBtn,
+  width: "100%",
+  padding: "10px 6px",
+  fontSize: 12,
+};
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+const emptyCell = {
+  padding: 30,
+  textAlign: "center",
+  color: "#64748b",
+};
+
+const emptyState = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 5,
+};
+
+const emptyIcon = {
+  width: 48,
+  height: 48,
+  borderRadius: 13,
+  background: "#f1f5f9",
+  color: "#64748b",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 5,
+};
+
+const mobileEmptyState = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 5,
+  padding: "35px 15px",
+  border: "1px solid #e2e8f0",
+  borderRadius: 14,
+  color: "#64748b",
+  textAlign: "center",
 };
 
 /* =========================================================
@@ -2163,6 +3587,37 @@ const modalActions = {
   flexWrap: "wrap",
 };
 
+const createBtnModal = {
+  background:
+    "linear-gradient(135deg,#0f172a,#1e3a8a)",
+  color: "#ffffff",
+  border: "none",
+  borderRadius: 10,
+  padding: "10px 17px",
+  cursor: "pointer",
+  fontWeight: 700,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  boxSizing: "border-box",
+};
+
+const cancelBtn = {
+  background: "#e2e8f0",
+  color: "#0f172a",
+  border: "none",
+  borderRadius: 10,
+  padding: "10px 15px",
+  cursor: "pointer",
+  fontWeight: 700,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  boxSizing: "border-box",
+};
+
 /* =========================================================
    LOADING
 ========================================================= */
@@ -2190,4 +3645,240 @@ const loadingSpinner = {
   borderRadius: "50%",
   border: "3px solid #dbeafe",
   borderTopColor: "#2563eb",
+  animation: "spin 1s linear infinite",
 };
+
+/* =========================================================
+   RESPONSIVE STYLES
+========================================================= */
+
+const responsiveStyles = `
+  * {
+    box-sizing: border-box;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  .desktopOnly {
+    display: block;
+  }
+
+  .mobileOnly {
+    display: none;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (max-width: 900px) {
+
+    .books-page {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+
+    .books-status-overview {
+      flex-wrap: wrap;
+    }
+
+  }
+
+  @media (max-width: 700px) {
+
+    .desktopOnly {
+      display: none !important;
+    }
+
+    .mobileOnly {
+      display: block !important;
+    }
+
+    .books-page {
+      padding: 20px 12px 40px !important;
+    }
+
+    .books-header {
+      align-items: flex-start !important;
+    }
+
+    .books-header-top {
+      align-items: flex-start !important;
+      flex-direction: column !important;
+    }
+
+    .books-title {
+      font-size: 25px !important;
+    }
+
+    .books-subtitle {
+      font-size: 13px !important;
+    }
+
+    .books-refresh {
+      width: 100% !important;
+    }
+
+    .books-summary-grid {
+      grid-template-columns:
+        repeat(2,minmax(0,1fr)) !important;
+      gap: 10px !important;
+    }
+
+    .books-summary-card {
+      min-height: 125px !important;
+      padding: 15px !important;
+    }
+
+    .books-summary-number {
+      font-size: 22px !important;
+    }
+
+    .books-status-overview {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+      padding: 14px !important;
+    }
+
+    .books-status-divider {
+      display: none !important;
+    }
+
+    .books-card {
+      padding: 15px !important;
+      border-radius: 16px !important;
+    }
+
+    .books-section-title {
+      font-size: 19px !important;
+    }
+
+    .books-product-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .books-add-button {
+      width: 100% !important;
+    }
+
+    .books-form-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .books-billing-grid {
+      grid-template-columns: 1fr 1fr !important;
+    }
+
+    .books-mobile-actions {
+      grid-template-columns: 1fr !important;
+    }
+
+    .books-search-card {
+      padding: 15px !important;
+    }
+
+    .books-modal {
+      padding: 12px !important;
+    }
+
+    .books-modal-box {
+      padding: 20px !important;
+      border-radius: 17px !important;
+    }
+
+  }
+
+  @media (max-width: 480px) {
+
+    .books-page {
+      padding: 16px 10px 35px !important;
+    }
+
+    .books-header-icon {
+      width: 46px !important;
+      height: 46px !important;
+      min-width: 46px !important;
+    }
+
+    .books-title {
+      font-size: 22px !important;
+    }
+
+    .books-summary-grid {
+      grid-template-columns:
+        1fr 1fr !important;
+    }
+
+    .books-summary-card {
+      padding: 13px !important;
+      min-height: 118px !important;
+    }
+
+    .books-summary-label {
+      font-size: 11px !important;
+    }
+
+    .books-summary-number {
+      font-size: 19px !important;
+    }
+
+    .books-summary-description {
+      font-size: 10px !important;
+    }
+
+    .books-section-description {
+      font-size: 12px !important;
+    }
+
+    .books-billing-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .books-mobile-item-details {
+      grid-template-columns:
+        1fr 1fr 1fr !important;
+    }
+
+    .books-mobile-document-header {
+      align-items: flex-start !important;
+    }
+
+    .books-mobile-actions {
+      grid-template-columns: 1fr !important;
+    }
+
+    .books-mobile-actions button {
+      width: 100% !important;
+    }
+
+    .books-modal-actions {
+      flex-direction: column-reverse !important;
+    }
+
+    .books-modal-actions button {
+      width: 100% !important;
+    }
+
+  }
+`;

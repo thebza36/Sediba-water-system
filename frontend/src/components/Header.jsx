@@ -137,7 +137,7 @@ const Header = () => {
       <div style={brandSection(isMobile)}>
         <div style={logoWrapper(darkMode)}>
           <img
-            src="/Logo.png"
+            src="/JUST LOGO.svg"
             alt="Sediba Still Water"
             style={logo}
             onError={(e) => {

@@ -1,20 +1,35 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
 import { useEffect } from "react";
+
 import socket from "./socket";
 import SessionTimeout from "./components/SessionTimeout";
+
+/* =========================================================
+   PUBLIC
+========================================================= */
+
 import Login from "./pages/Login";
+
+/* =========================================================
+   ADMIN PAGES
+========================================================= */
+
 import AdminDashboard from "./pages/AdminDashboard";
-import EmployeePage from "./pages/EmployeePage";
 import AdminEmployees from "./pages/AdminEmployees";
 import Meters from "./pages/Meters";
-import RecordSale from "./pages/RecordSale";
 import Reports from "./pages/Reports";
 import Clients from "./pages/Clients";
 import ClientProfile from "./pages/clientProfile";
-import AdminLayout from "./layouts/AdminLayout";
 import Profile from "./pages/Profile";
-import EmployeeLayout from "./layouts/EmployeeLayout";
+
 import TopEmployees from "./pages/TopEmployees";
+
 import AdminProducts from "./pages/AdminProducts";
 import AdminInventory from "./pages/AdminInventory";
 import AdminSalesHistory from "./pages/AdminSalesHistory";
@@ -23,46 +38,126 @@ import AdminTankRefills from "./pages/AdminTankRefills";
 import AdminExpenses from "./pages/AdminExpenses";
 import AdminAlerts from "./pages/AdminAlerts";
 import AdminSettings from "./pages/AdminSettings";
+import AdminWaterTests from "./pages/AdminWaterTests";
+
+/* =========================================================
+   EMPLOYEE PAGES
+========================================================= */
+
+import EmployeePage from "./pages/EmployeePage";
+import RecordSale from "./pages/RecordSale";
 import EmployeeMySales from "./pages/EmployeeMySales";
 import Books from "./pages/Books";
 import Readings from "./pages/Readings";
 import Deliveries from "./pages/Deliveries";
+import WaterTests from "./pages/WaterTests";
+
+/* =========================================================
+   LAYOUTS
+========================================================= */
+
+import AdminLayout from "./layouts/AdminLayout";
+import EmployeeLayout from "./layouts/EmployeeLayout";
+
+/* =========================================================
+   THEME
+========================================================= */
+
 import { ThemeProvider } from "./context/ThemeContext";
+
+/* =========================================================
+   RESPONSIVE CSS
+========================================================= */
+
 import "./styles/responsive.css";
 
-/* 🔐 PROTECTED ROUTE */
+/* =========================================================
+   PROTECTED ROUTE
+========================================================= */
+
 function PrivateRoute({ children, role }) {
   const token = localStorage.getItem("token");
   const userRole = localStorage.getItem("role");
-  if (!token) return <Navigate to="/" replace />;
-  if (role && userRole !== role) return <Navigate to="/" replace />;
+
+  /* -------------------------------------------------------
+     NO LOGIN TOKEN
+  ------------------------------------------------------- */
+
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
+
+  /* -------------------------------------------------------
+     WRONG USER ROLE
+  ------------------------------------------------------- */
+
+  if (role && userRole !== role) {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 }
 
+/* =========================================================
+   APP
+========================================================= */
+
 function App() {
-  /* 🔔 SOCKET CONNECTION */
+  /* =======================================================
+     SOCKET CONNECTION
+  ======================================================= */
+
   useEffect(() => {
-    socket.on("connect", () => {
+    const handleConnect = () => {
       console.log("🔌 Connected:", socket.id);
-    });
-    socket.on("newSale", (data) => {
+    };
+
+    const handleNewSale = (data) => {
       console.log("🔔 New Sale Notification:", data);
-    });
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("newSale", handleNewSale);
+
     return () => {
-      socket.off("newSale");
+      socket.off("connect", handleConnect);
+      socket.off("newSale", handleNewSale);
     };
   }, []);
+
+  /* =======================================================
+     APPLICATION
+  ======================================================= */
 
   return (
     <ThemeProvider>
       <Router>
-        {/* 🔐 5-MINUTE SESSION SECURITY TIMEOUT */}
-        <SessionTimeout />
-        <Routes>
-          {/* PUBLIC */}
-          <Route path="/" element={<Login />} />
 
-          {/* ================= ADMIN ROUTES ================= */}
+        {/* =================================================
+            SESSION SECURITY
+        ================================================= */}
+
+        <SessionTimeout />
+
+        {/* =================================================
+            ALL APPLICATION ROUTES
+        ================================================= */}
+
+        <Routes>
+
+          {/* =================================================
+              PUBLIC ROUTES
+          ================================================= */}
+
+          <Route
+            path="/"
+            element={<Login />}
+          />
+
+          {/* =================================================
+              ADMIN ROUTES
+          ================================================= */}
+
           <Route
             path="/admin"
             element={
@@ -71,26 +166,180 @@ function App() {
               </PrivateRoute>
             }
           >
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="employees" element={<AdminEmployees />} />
-            <Route path="meters" element={<Meters />} />
-            <Route path="meter-readings" element={<AdminMeterReadings />} />
-            <Route path="tank-refills" element={<AdminTankRefills />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="clients" element={<Clients />} />
-            <Route path="top-employees" element={<TopEmployees />} />
-            <Route path="clients/:id" element={<ClientProfile />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="inventory" element={<AdminInventory />} />
-            <Route path="sales-history" element={<AdminSalesHistory />} />
-            <Route path="expenses" element={<AdminExpenses />} />
-            <Route path="alerts" element={<AdminAlerts />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route index element={<Navigate to="dashboard" replace />} />
+
+            {/* =================================================
+                ADMIN DASHBOARD
+            ================================================= */}
+
+            <Route
+              path="dashboard"
+              element={<AdminDashboard />}
+            />
+
+            {/* =================================================
+                EMPLOYEES
+            ================================================= */}
+
+            <Route
+              path="employees"
+              element={<AdminEmployees />}
+            />
+
+            {/* =================================================
+                METERS
+            ================================================= */}
+
+            <Route
+              path="meters"
+              element={<Meters />}
+            />
+
+            {/* =================================================
+                ADMIN WATER TESTS
+            ================================================= */}
+
+            <Route
+              path="water-tests"
+              element={<AdminWaterTests />}
+            />
+
+            {/* =================================================
+                METER READINGS
+            ================================================= */}
+
+            <Route
+              path="meter-readings"
+              element={<AdminMeterReadings />}
+            />
+
+            {/* =================================================
+                TANK REFILLS
+            ================================================= */}
+
+            <Route
+              path="tank-refills"
+              element={<AdminTankRefills />}
+            />
+
+            {/* =================================================
+                REPORTS
+            ================================================= */}
+
+            <Route
+              path="reports"
+              element={<Reports />}
+            />
+
+            {/* =================================================
+                CLIENTS
+            ================================================= */}
+
+            <Route
+              path="clients"
+              element={<Clients />}
+            />
+
+            {/* =================================================
+                CLIENT PROFILE
+            ================================================= */}
+
+            <Route
+              path="clients/:id"
+              element={<ClientProfile />}
+            />
+
+            {/* =================================================
+                TOP EMPLOYEES
+            ================================================= */}
+
+            <Route
+              path="top-employees"
+              element={<TopEmployees />}
+            />
+
+            {/* =================================================
+                PROFILE
+            ================================================= */}
+
+            <Route
+              path="profile"
+              element={<Profile />}
+            />
+
+            {/* =================================================
+                PRODUCTS
+            ================================================= */}
+
+            <Route
+              path="products"
+              element={<AdminProducts />}
+            />
+
+            {/* =================================================
+                INVENTORY
+            ================================================= */}
+
+            <Route
+              path="inventory"
+              element={<AdminInventory />}
+            />
+
+            {/* =================================================
+                SALES HISTORY
+            ================================================= */}
+
+            <Route
+              path="sales-history"
+              element={<AdminSalesHistory />}
+            />
+
+            {/* =================================================
+                EXPENSES
+            ================================================= */}
+
+            <Route
+              path="expenses"
+              element={<AdminExpenses />}
+            />
+
+            {/* =================================================
+                ALERTS
+            ================================================= */}
+
+            <Route
+              path="alerts"
+              element={<AdminAlerts />}
+            />
+
+            {/* =================================================
+                SETTINGS
+            ================================================= */}
+
+            <Route
+              path="settings"
+              element={<AdminSettings />}
+            />
+
+            {/* =================================================
+                ADMIN DEFAULT ROUTE
+            ================================================= */}
+
+            <Route
+              index
+              element={
+                <Navigate
+                  to="dashboard"
+                  replace
+                />
+              }
+            />
+
           </Route>
 
-          {/* ================= EMPLOYEE ROUTES ================= */}
+          {/* =================================================
+              EMPLOYEE ROUTES
+          ================================================= */}
+
           <Route
             path="/employee"
             element={
@@ -99,20 +348,127 @@ function App() {
               </PrivateRoute>
             }
           >
-            <Route path="dashboard" element={<EmployeePage />} />
-            <Route path="record-sale" element={<RecordSale />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="my-sales" element={<EmployeeMySales />} />
-            <Route path="books" element={<Books />} />
-            <Route path="readings" element={<Readings />} />
-            <Route path="deliveries" element={<Deliveries />} />
-            <Route path="top-employees" element={<TopEmployees />} />
-            <Route index element={<Navigate to="dashboard" replace />} />
+
+            {/* =================================================
+                EMPLOYEE DASHBOARD
+            ================================================= */}
+
+            <Route
+              path="dashboard"
+              element={<EmployeePage />}
+            />
+
+            {/* =================================================
+                RECORD SALE
+            ================================================= */}
+
+            <Route
+              path="record-sale"
+              element={<RecordSale />}
+            />
+
+            {/* =================================================
+                MY SALES
+            ================================================= */}
+
+            <Route
+              path="my-sales"
+              element={<EmployeeMySales />}
+            />
+
+            {/* =================================================
+                BOOKS
+            ================================================= */}
+
+            <Route
+              path="books"
+              element={<Books />}
+            />
+
+            {/* =================================================
+                METER READINGS
+            ================================================= */}
+
+            <Route
+              path="readings"
+              element={<Readings />}
+            />
+
+            {/* =================================================
+                DELIVERIES
+            ================================================= */}
+
+            <Route
+              path="deliveries"
+              element={<Deliveries />}
+            />
+
+            {/* =================================================
+                EMPLOYEE WATER TESTS
+            ================================================= */}
+
+            <Route
+              path="water-tests"
+              element={<WaterTests />}
+            />
+
+            {/* =================================================
+                TOP EMPLOYEES
+            ================================================= */}
+
+            <Route
+              path="top-employees"
+              element={<TopEmployees />}
+            />
+
+            {/* =================================================
+                EMPLOYEE PROFILE
+            ================================================= */}
+
+            <Route
+              path="profile"
+              element={<Profile />}
+            />
+
+            {/* =================================================
+                EMPLOYEE DEFAULT ROUTE
+            ================================================= */}
+
+            <Route
+              index
+              element={
+                <Navigate
+                  to="dashboard"
+                  replace
+                />
+              }
+            />
+
           </Route>
+
+          {/* =================================================
+              FALLBACK
+          ================================================= */}
+
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/"
+                replace
+              />
+            }
+          />
+
         </Routes>
+
       </Router>
     </ThemeProvider>
   );
 }
+
+/* =========================================================
+   EXPORT
+========================================================= */
 
 export default App;

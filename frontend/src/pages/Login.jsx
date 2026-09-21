@@ -224,7 +224,7 @@ export default function Login() {
           <div style={logoBox(darkMode)}>
 
             <img
-              src="/Logo.png"
+              src="/JUST LOGO.svg"
               alt="Sediba Still Water"
               style={logo}
             />
@@ -232,11 +232,11 @@ export default function Login() {
           </div>
 
           <h1 style={title}>
-            Sediba Still Water
+            Sediba Waters
           </h1>
 
           <p style={systemTitle(darkMode)}>
-            Management System
+            Business Workspace
           </p>
 
           <p style={subtitle(darkMode)}>
@@ -607,12 +607,12 @@ export default function Login() {
 
     © {new Date().getFullYear()}
     {" "}
-    Sediba Still Water System
+    Sediba Waters
 
   </p>
 
   <p style={codedBy}>
-    Coded by Thebeko Maboee
+    Coded by Thebeko Stibywada Maboee
   </p>
 
 </div>

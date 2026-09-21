@@ -30,6 +30,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const waterAccountingRoutes = require("./routes/waterAccountingRoutes");
 const bookRoutes = require("./routes/bookRoutes");
 const meterReadingRoutes = require("./routes/meterReadingRoutes");
+const waterTestRoutes = require("./routes/waterTestRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -77,6 +78,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/meters", meterRoutes);
 app.use("/api/water-sales", waterSaleRoutes);
+app.use("/api/water-tests", waterTestRoutes);
 
 app.use("/api/analytics", analyticsRoutes);
 

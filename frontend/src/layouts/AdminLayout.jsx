@@ -10,6 +10,7 @@ import {
   Boxes,
   Gauge,
   ClipboardList,
+  FlaskConical,
   Users,
   UserCog,
   FileText,
@@ -240,6 +241,16 @@ const AdminLayout = () => {
             <ClipboardList size={20} />
           }
           label="Meter Readings"
+          onNavigate={closeMenu}
+        />
+
+
+        <Nav
+          to="/admin/water-tests"
+          icon={
+            <FlaskConical size={20} />
+          }
+          label="Water Tests"
           onNavigate={closeMenu}
         />
 
